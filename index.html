@@ -1246,6 +1246,64 @@ body::before {
 // ═══ CONFIG ═══
 const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
 
+// ═══ SAFE JSON PARSING (MODEL OUTPUT) ═══
+function _stripModelFences(s){
+  return String(s ?? '')
+    .replace(/^\uFEFF/, '') // BOM
+    .replace(/```(?:json)?/gi, '')
+    .replace(/```/g, '')
+    .trim();
+}
+
+function _fixTrailingCommas(s){
+  // Common model mistake: trailing commas before } or ]
+  return String(s).replace(/,\s*([}\]])/g, '$1');
+}
+
+function _extractFirstJsonBlock(s){
+  const str = String(s ?? '');
+  const start = str.search(/[\{\[]/);
+  if (start < 0) return null;
+  const open = str[start];
+  const close = open === '{' ? '}' : ']';
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < str.length; i++){
+    const ch = str[i];
+    if (inString){
+      if (escaped){ escaped = false; continue; }
+      if (ch === '\\'){ escaped = true; continue; }
+      if (ch === '"'){ inString = false; }
+      continue;
+    }
+    if (ch === '"'){ inString = true; continue; }
+    if (ch === open) depth++;
+    if (ch === close){
+      depth--;
+      if (depth === 0) return str.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseModelJsonOrThrow(text){
+  const raw = _stripModelFences(text);
+  if (!raw) throw new Error('Empty response');
+
+  const extracted = _extractFirstJsonBlock(raw);
+  const candidates = extracted && extracted !== raw ? [raw, extracted] : [raw];
+
+  for (const c of candidates){
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(_fixTrailingCommas(c)); } catch {}
+  }
+
+  const snippet = raw.slice(0, 180).replace(/\s+/g, ' ');
+  throw new Error('Response was not valid JSON. Starts with: ' + snippet);
+}
+
 // ═══ CLOCK ═══
 setInterval(() => {
   document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17,22) + ' UTC';
@@ -1500,7 +1558,7 @@ Respond ONLY with JSON (no markdown):
     });
     const d=await res.json();
     const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    panelData=JSON.parse(t);
+    panelData=parseModelJsonOrThrow(t);
   } catch(e){ console.error('PANEL ERROR:', e); panelData={why:'Analysis unavailable: '+e.message,shadow:'—',money:'—',act:'—',connectedInsights:{}}; }
 
   document.getElementById('spLoading').style.display='none';
@@ -1623,7 +1681,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     });
     const d=await res.json();
     const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    renderIntel(JSON.parse(t));
+    renderIntel(parseModelJsonOrThrow(t));
   } catch(e){
     clearInterval(loadTimer);
     document.getElementById('intelLoading').style.display='none';
@@ -1778,7 +1836,7 @@ Analyse ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
   });
   const d = await res.json();
   const t = d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-  return JSON.parse(t);
+  return parseModelJsonOrThrow(t);
 }
 
 async function loadAllSignals() {
