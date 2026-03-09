@@ -1,4 +1,6 @@
 exports.handler = async function(event, context) {
+  context.callbackWaitsForEmptyEventLoop = false;
+
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -18,6 +20,13 @@ exports.handler = async function(event, context) {
   try {
     const body = JSON.parse(event.body);
 
+    // Use Haiku for speed, cap tokens to stay under 10s limit
+    const payload = {
+      ...body,
+      max_tokens: Math.min(body.max_tokens || 800, 800),
+      model: 'claude-haiku-4-5-20251001'
+    };
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -25,7 +34,7 @@ exports.handler = async function(event, context) {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
