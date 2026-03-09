@@ -198,26 +198,27 @@
     .risk-bar {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 10px 32px;
-      border-top: 1px solid var(--border2);
-      border-bottom: 1px solid var(--border2);
-      background: radial-gradient(circle at left, rgba(232, 123, 52, 0.28), rgba(3, 6, 10, 0.96));
+      gap: 18px;
+      padding: 8px 32px;
+      border-top: 1px solid rgba(255, 70, 70, 0.5);
+      border-bottom: 1px solid rgba(255, 70, 70, 0.5);
+      background: linear-gradient(to right, rgba(255, 40, 40, 0.9), rgba(10, 4, 4, 0.96));
       font-family: var(--mono);
       font-size: 12px;
-      color: var(--text);
+      color: #FFEFEF;
     }
 
     .risk-label {
       font-family: var(--orb);
-      font-size: 10px;
-      letter-spacing: 3px;
-      padding: 4px 10px;
+      font-size: 11px;
+      letter-spacing: 4px;
+      padding: 4px 12px;
       border-radius: 999px;
-      background: #E87B34;
-      color: #05080D;
-      box-shadow: 0 0 10px rgba(232, 123, 52, 0.6);
+      background: #000;
+      color: #FF4040;
+      box-shadow: 0 0 14px rgba(255, 40, 40, 0.85);
       flex-shrink: 0;
+      text-transform: uppercase;
     }
 
     .risk-marquee {
@@ -229,8 +230,8 @@
 
     .risk-inner {
       display: inline-block;
-      padding-left: 4px;
-      animation: riskScroll 30s linear infinite;
+      padding-left: 8px;
+      animation: riskScroll 26s linear infinite;
     }
 
     .risk-item {
@@ -246,7 +247,7 @@
       text-transform: uppercase;
       font-size: 9px;
       letter-spacing: 1.5px;
-      color: var(--gold2);
+      color: #FFE06A;
       margin-right: 6px;
     }
 
@@ -2180,6 +2181,24 @@
     refreshLiveStats();
     setInterval(refreshLiveStats, 60000);
 
+    // Simple fallback: pick obvious risks from the base map if the model call fails
+    function fallbackRiskHighlights() {
+      const shortNode = nodes.find(n => n.id === 'hormuz') || nodes.find(n => n.id === 'oil') || nodes[0];
+      const longNode = nodes.find(n => n.id === 'cbdc') || nodes.find(n => n.id === 'great_taking') || nodes[1] || nodes[0];
+      riskHighlights.shortTerm = shortNode ? {
+        nodeId: shortNode.id,
+        headline: 'Hormuz / oil supply shock',
+        reason: 'Tighter shipping lanes and higher oil prices can hit Australian fuel costs and subcontractor margins quickly.',
+        defend: 'Keep cash buffers tight, avoid fixed‑price contracts that ignore fuel escalation, and consider indirect oil hedges.'
+      } : null;
+      riskHighlights.longTerm = longNode ? {
+        nodeId: longNode.id,
+        headline: 'Policy and money system risk',
+        reason: 'Slow‑burn changes in cash access, CBDCs and super rules can reshape how savings and contracts behave over years.',
+        defend: 'Diversify between bank deposits, physical assets and flexible contract structures so you are not trapped in one policy regime.'
+      } : null;
+    }
+
     // Scan the map for biggest near and long-term risks and populate the alert bar
     async function scanMapRisk() {
       const barEl = document.getElementById('riskBarContent');
@@ -2187,7 +2206,10 @@
         barEl.textContent = 'Scanning map for biggest near-term and long-term risks...';
       }
       try {
-        const summary = nodes.map(n => `${n.id}:${n.label.replace('\n', ' ')} [${n.type}]`).join(', ');
+        const summary = nodes
+          .slice(0, 80)
+          .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace('\n', ' ')} [${n.type}]`)
+          .join(', ');
         const prompt = `You are NEXUS, an early-warning system for an Australian subcontractor/investor in Melbourne.
 
 Here is the current map of key nodes (id:label[type]):
@@ -2197,10 +2219,22 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 - the single biggest SHORT-TERM (0-3 months) risk for this user
 - the single biggest LONG-TERM (6-18 months) structural risk
 
+For each, also give a concrete defence plan focused on what this Melbourne subcontractor/investor can actually do (positioning, hedging, timing, or preparation).
+
 Respond ONLY with strict JSON, no markdown, no commentary:
 {
-  "shortTerm":{"nodeId":"ID_FROM_LIST","headline":"very short line","reason":"1-2 sentence why this is the biggest near-term risk"},
-  "longTerm":{"nodeId":"ID_FROM_LIST","headline":"very short line","reason":"1-2 sentence why this is the biggest long-term risk"}
+  "shortTerm":{
+    "nodeId":"ID_FROM_LIST",
+    "headline":"very short line describing the risk",
+    "reason":"1-2 sentences on why this is the biggest near-term risk",
+    "defend":"1-2 sentences on how this user can defend against it in practical terms"
+  },
+  "longTerm":{
+    "nodeId":"ID_FROM_LIST",
+    "headline":"very short line describing the risk",
+    "reason":"1-2 sentences on why this is the biggest long-term risk",
+    "defend":"1-2 sentences on how this user can defend against it in practical terms"
+  }
 }`;
 
         const res = await fetch(NEXUS_WORKER_URL, {
@@ -2216,14 +2250,21 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (!Array.isArray(d.content)) throw new Error(d.error || 'No content field in risk scan response');
         const raw = d.content.map(i => i.text || '').join('');
         const parsed = parseModelJsonOrThrow(raw);
+        if (!parsed || (typeof parsed !== 'object')) {
+          throw new Error('Risk JSON had wrong shape');
+        }
         riskHighlights.shortTerm = parsed.shortTerm || null;
         riskHighlights.longTerm = parsed.longTerm || null;
+        if (!riskHighlights.shortTerm && !riskHighlights.longTerm) {
+          // If the model responded but gave us nothing usable, fall back
+          fallbackRiskHighlights();
+        }
         updateRiskBar();
       } catch (e) {
         console.error('RISK SCAN ERROR:', e);
-        if (barEl) {
-          barEl.textContent = 'Alert scan unavailable: ' + e.message;
-        }
+        // Fall back to a simple curated alert so the banner is never empty
+        fallbackRiskHighlights();
+        updateRiskBar();
       }
     }
 
@@ -2272,7 +2313,13 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           if (!target) return;
           const nodeId = target.getAttribute('data-node');
           const n = nodes.find(x => x.id === nodeId);
-          if (n) openPanel(n);
+          if (!n) return;
+          openPanel(n).then(() => {
+            // After panel content loads, switch to the ACT tab so they see defence actions
+            try { spTab('act'); } catch (_) { }
+          }).catch(() => {
+            try { spTab('act'); } catch (_) { }
+          });
         });
         wrapper._riskBound = true;
       }
@@ -2799,14 +2846,17 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       tvy = -((minY + maxY) / 2);
     }
 
-    // Load shared dynamic nodes, then settle layout and start the render loop
+    // Load shared dynamic nodes, then settle layout, start the render loop, and run an initial risk scan
     loadDynamicNodesFromServer().then(() => {
       relaxLayout(6, 0.25);
       autoFitCamera();
       drawAll();
+      // Kick off the alert scan once nodes (including any shared ones) are ready
+      scanMapRisk();
     }).catch(() => {
       autoFitCamera();
       drawAll();
+      scanMapRisk();
     });
 
     // ═══ MAP INTERACTION ═══
