@@ -2350,27 +2350,16 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const lastScan = document.getElementById('urgentLastScan');
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
-      // Optionally create/update an "URGENT HUB" node on the map that links to the current high‑risk bubbles
+      // Update the existing "URGENT HUB" node on the map so it links to the current high‑risk bubbles
       const urgentIds = [];
       if (st && st.nodeId) urgentIds.push(st.nodeId);
       if (lt && lt.nodeId && lt.nodeId !== st?.nodeId) urgentIds.push(lt.nodeId);
       if (urgentIds.length) {
-        let hub = nodes.find(n => n.id === 'urgent_hub');
-        if (!hub) {
-          hub = {
-            id: 'urgent_hub',
-            x: 0,
-            y: 0,
-            label: 'URGENT\nHUB',
-            fullLabel: 'URGENT HUB — highest risk issues to watch now',
-            type: 'policy',
-            size: 30,
-            connections: []
-          };
-          nodes.push(hub);
-          anim[hub.id] = { s: 1 };
+        const hub = nodes.find(n => n.id === 'urgent_hub');
+        if (hub) {
+          // Only keep links from the hub to the latest urgent nodes
+          hub.connections = Array.from(new Set(urgentIds));
         }
-        hub.connections = Array.from(new Set([...(hub.connections || []), ...urgentIds]));
         urgentIds.forEach(id => {
           const n = nodes.find(x => x.id === id);
           if (n) {
@@ -2535,6 +2524,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'apra', x: 280, y: 185, label: 'APRA\nPOWERS', type: 'shadow', size: 24, connections: ['super_aus', 'cash_ban'] },
       { id: 'ai_silver', x: -110, y: -335, label: 'AI SILVER\nDEMAND', type: 'resource', size: 22, connections: ['silver', 'solar'] },
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
+      // URGENT HUB — central node that links to whatever the URGENT scan says matters most right now
+      { id: 'urgent_hub', x: 0, y: 260, label: 'URGENT\nHUB', type: 'policy', size: 30, connections: [] },
     ];
 
     // Bring bubbles closer together (layout compactness)
