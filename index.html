@@ -2094,7 +2094,14 @@
       document.getElementById('btnIntel').classList.toggle('active', mode === 'intel');
       document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
       if (mode !== 'map') closePanel();
-      if (mode === 'signals' && !sigDataCache['GOLD']) loadAllSignals();
+      if (mode === 'signals' && !sigDataCache['GOLD']) {
+        // Auto-run a market scan the first time you enter SIGNALS
+        if (typeof discoverSignals === 'function') {
+          discoverSignals();
+        } else {
+          loadAllSignals();
+        }
+      }
     }
 
     // ═══ NODE DATA ═══
@@ -2142,6 +2149,32 @@
     // Bring bubbles closer together (layout compactness)
     const LAYOUT_COMPACTNESS = 0.82;
     nodes.forEach(n => { n.x *= LAYOUT_COMPACTNESS; n.y *= LAYOUT_COMPACTNESS; });
+
+    // Build index and normalise connections (graph integrity)
+    const nodeIndex = new Map();
+    nodes.forEach(n => {
+      if (nodeIndex.has(n.id)) {
+        console.warn('Duplicate node id detected:', n.id);
+      }
+      nodeIndex.set(n.id, n);
+      // Deduplicate and clean self-links
+      n.connections = Array.from(new Set((n.connections || []).filter(cid => cid && cid !== n.id)));
+    });
+
+    // Ensure connections are symmetric and log missing targets
+    nodes.forEach(n => {
+      (n.connections || []).forEach(cid => {
+        const target = nodeIndex.get(cid);
+        if (!target) {
+          console.warn('Missing target for connection', n.id, '->', cid);
+          return;
+        }
+        if (!Array.isArray(target.connections)) target.connections = [];
+        if (!target.connections.includes(n.id)) {
+          target.connections.push(n.id);
+        }
+      });
+    });
 
     // ═══ CANVAS SETUP ═══
     const canvas = document.getElementById('mapCanvas');
@@ -2256,17 +2289,33 @@
           if (n.pulse || isSel) {
             const pr = r * (1 + 0.25 * Math.sin(Date.now() * 0.003));
             ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
-            ctx.strokeStyle = col + '25'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.strokeStyle = col + '40'; ctx.lineWidth = 2.2; ctx.stroke();
           }
-          if (isSel || isHov) { ctx.shadowColor = col; ctx.shadowBlur = 20 * sc; }
+          if (isSel || isHov) { ctx.shadowColor = col; ctx.shadowBlur = 24 * sc; }
           ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          if (isSel) { ctx.fillStyle = col + '28'; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.stroke(); }
-          else if (isConn) { ctx.fillStyle = col + '18'; ctx.fill(); ctx.strokeStyle = col + '99'; ctx.lineWidth = 1.5; ctx.stroke(); }
-          else { ctx.fillStyle = col + '12'; ctx.fill(); ctx.strokeStyle = col + (isHov ? 'BB' : '44'); ctx.lineWidth = isHov ? 2 : 0.8; ctx.stroke(); }
+          if (isSel) {
+            ctx.fillStyle = col + '3A';
+            ctx.fill();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 2.8;
+            ctx.stroke();
+          } else if (isConn) {
+            ctx.fillStyle = col + '28';
+            ctx.fill();
+            ctx.strokeStyle = col + 'CC';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = col + '1F';
+            ctx.fill();
+            ctx.strokeStyle = col + (isHov ? 'CC' : '66');
+            ctx.lineWidth = isHov ? 2.2 : 1.0;
+            ctx.stroke();
+          }
           ctx.shadowBlur = 0;
           const lines = n.label.split('\n');
-          const fs = Math.max(9, 12 * sc * a.s);
-          ctx.fillStyle = isSel ? col : (isConn ? col + 'CC' : col + (selNode ? '66' : '99'));
+          const fs = Math.max(9.5, 12.5 * sc * a.s);
+          ctx.fillStyle = isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE'));
           ctx.font = `${fs}px 'DM Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           const lh = Math.max(11, 15 * sc), th = lines.length * lh;
           lines.forEach((l, i) => ctx.fillText(l, p.x, p.y - th / 2 + lh * (i + .5)));
@@ -2812,10 +2861,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           })
         });
         const d = await res.json();
-        const raw = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
-        const jsonStart = raw.indexOf('{'), jsonEnd = raw.lastIndexOf('}');
-        if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON block in discovery response');
-        const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+        if (!Array.isArray(d.content)) {
+          throw new Error(d.error || 'No content field in discovery response');
+        }
+        const raw = d.content.map(i => i.text || '').join('');
+        const parsed = parseModelJsonOrThrow(raw);
         const candidates = parsed.candidates || [];
 
         const tickerEl = document.getElementById('sigTicker');
