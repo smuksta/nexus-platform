@@ -918,6 +918,124 @@ body::before {
 .fade-up:nth-child(4){animation-delay:0.2s}
 .fade-up:nth-child(5){animation-delay:0.25s}
 .fade-up:nth-child(6){animation-delay:0.3s}
+
+/* ═══ SIGNALS MODE ═══ */
+#signalsView {
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  background: var(--bg2);
+  overflow:hidden;
+}
+
+.signals-header {
+  padding:16px 28px;
+  border-bottom: 1px solid var(--border2);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+}
+
+.signals-title { font-family:var(--orb); font-size:13px; letter-spacing:4px; color:var(--teal); }
+.signals-sub { font-family:var(--mono); font-size:10px; color:var(--muted2); letter-spacing:1px; margin-top:2px; }
+
+.signals-refresh {
+  background:rgba(0,212,170,0.08); border:1px solid rgba(0,212,170,0.2);
+  color:var(--teal); font-family:var(--orb); font-size:9px; letter-spacing:2px;
+  padding:7px 18px; cursor:pointer; border-radius:2px; transition:all 0.2s;
+}
+.signals-refresh:hover { background:rgba(0,212,170,0.15); }
+.signals-refresh:disabled { opacity:0.4; cursor:not-allowed; }
+
+.signals-ticker {
+  display:flex; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto;
+}
+.signals-ticker::-webkit-scrollbar { display:none; }
+
+.sig-asset-tab {
+  flex-shrink:0; padding:10px 20px; cursor:pointer; border-bottom:2px solid transparent;
+  transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:3px;
+  min-width:100px;
+}
+.sig-asset-tab:hover { background:rgba(255,255,255,0.02); }
+.sig-asset-tab.active { border-bottom-color:var(--gold); }
+.sig-asset-name { font-family:var(--orb); font-size:10px; letter-spacing:2px; color:var(--muted2); }
+.sig-asset-tab.active .sig-asset-name { color:var(--gold2); }
+.sig-asset-score { font-family:var(--mono); font-size:18px; font-weight:500; line-height:1; }
+.sig-asset-signal { font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:1px; }
+
+.signals-body {
+  flex:1; overflow-y:auto; display:grid; grid-template-columns:340px 1fr; gap:0;
+}
+
+.sig-left {
+  border-right:1px solid var(--border2); overflow-y:auto; padding:20px;
+  display:flex; flex-direction:column; gap:14px;
+}
+.sig-left::-webkit-scrollbar { width:3px; }
+.sig-left::-webkit-scrollbar-thumb { background:var(--border2); }
+
+.sig-dial-wrap { display:flex; flex-direction:column; align-items:center; padding:20px 0 10px; }
+.sig-dial-outer {
+  width:140px; height:140px; border-radius:50%; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.sig-dial-number { font-family:var(--orb); font-size:42px; font-weight:900; line-height:1; position:relative; z-index:1; }
+.sig-dial-label { font-family:var(--orb); font-size:9px; letter-spacing:3px; color:var(--muted2); margin-top:10px; }
+.sig-signal-badge { font-family:var(--orb); font-size:11px; letter-spacing:3px; padding:6px 16px; border-radius:2px; margin-top:8px; }
+
+.sig-factors { display:flex; flex-direction:column; gap:8px; }
+.sig-factor-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+.sig-factor-row { display:flex; align-items:center; gap:8px; }
+.sig-factor-name { font-family:var(--mono); font-size:10px; color:var(--muted2); width:90px; flex-shrink:0; }
+.sig-factor-track { flex:1; height:5px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.sig-factor-fill { height:100%; border-radius:2px; transition:width 1s cubic-bezier(0.4,0,0.2,1); }
+.sig-factor-val { font-family:var(--mono); font-size:10px; width:28px; text-align:right; flex-shrink:0; }
+
+.sig-right { overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.sig-right::-webkit-scrollbar { width:3px; }
+.sig-right::-webkit-scrollbar-thumb { background:var(--border2); }
+
+.sig-zones { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.sig-zone { background:var(--surface); border:1px solid var(--border2); padding:14px; border-radius:2px; border-top-width:2px; }
+.sig-zone-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:6px; }
+.sig-zone-val { font-family:var(--mono); font-size:20px; font-weight:500; line-height:1; margin-bottom:4px; }
+.sig-zone-note { font-family:var(--mono); font-size:10px; color:var(--muted2); line-height:1.4; }
+
+.sig-confluence { background:var(--surface); border:1px solid var(--border2); border-radius:2px; overflow:hidden; }
+.sig-conf-head { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.sig-conf-title { font-family:var(--orb); font-size:9px; letter-spacing:2px; color:var(--muted2); }
+.sig-conf-body { padding:14px; }
+.sig-conf-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:11px; }
+.sig-conf-row:last-child { border:none; }
+.sig-conf-factor { color:var(--muted2); }
+.sig-conf-status { display:flex; align-items:center; gap:6px; }
+.sig-conf-dot { width:6px; height:6px; border-radius:50%; }
+
+.sig-thesis { background:var(--surface2); border-left:2px solid var(--gold); padding:12px 14px; border-radius:0 3px 3px 0; font-size:12px; line-height:1.7; color:#7A9AAA; }
+.sig-thesis-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--gold); margin-bottom:6px; }
+
+.sig-watch { display:flex; flex-direction:column; gap:6px; }
+.sig-watch-item { display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:var(--surface); border:1px solid var(--border2); border-radius:2px; }
+.sig-watch-icon { font-size:13px; flex-shrink:0; }
+.sig-watch-content { flex:1; }
+.sig-watch-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.sig-watch-desc { font-family:var(--mono); font-size:10px; color:var(--muted2); line-height:1.4; }
+.sig-watch-urgency { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:1px; align-self:center; flex-shrink:0; }
+
+.sig-section-title { font-family:var(--orb); font-size:9px; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+
+.sig-loading {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  position:absolute; inset:0; background:rgba(3,6,10,0.92); z-index:10;
+}
+.sig-spinner { width:32px; height:32px; border:2px solid var(--border2); border-top-color:var(--teal); border-radius:50%; animation:spin 0.8s linear infinite; }
+.sig-load-text { font-family:var(--mono); font-size:10px; color:var(--muted2); letter-spacing:2px; }
+
+.sig-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; }
+.sig-empty-icon { font-family:var(--orb); font-size:48px; opacity:0.1; color:var(--teal); }
+.sig-empty-text { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:var(--muted2); }
 </style>
 </head>
 <body>
@@ -935,6 +1053,7 @@ body::before {
   <div class="mode-switch">
     <button class="mode-btn active" id="btnMap" onclick="setMode('map')">⬡ MAP</button>
     <button class="mode-btn" id="btnIntel" onclick="setMode('intel')">◈ INTEL</button>
+    <button class="mode-btn" id="btnSignals" onclick="setMode('signals')">▲ SIGNALS</button>
   </div>
 
   <div class="header-stats">
@@ -1033,8 +1152,73 @@ body::before {
   </div>
 </div>
 
+<!-- ═══ SIGNALS VIEW ═══ -->
+<div class="view hidden" id="signalsView">
+  <div class="signals-header">
+    <div>
+      <div class="signals-title">▲ SIGNALS MODE</div>
+      <div class="signals-sub">CONFLUENCE SCORES · ENTRY/EXIT ZONES · MACRO ALIGNMENT</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="sigLastUpdate">LAST UPDATE: —</div>
+      <button class="signals-refresh" id="sigRefreshBtn" onclick="loadAllSignals()">↻ REFRESH ALL</button>
+    </div>
+  </div>
+
+  <!-- Asset ticker tabs -->
+  <div class="signals-ticker" id="sigTicker">
+    <div class="sig-asset-tab active" id="sigtab-GOLD" onclick="selectSigAsset('GOLD')">
+      <div class="sig-asset-name">GOLD</div>
+      <div class="sig-asset-score" id="sigscore-GOLD" style="color:var(--gold)">—</div>
+      <div class="sig-asset-signal" id="sigsig-GOLD" style="background:rgba(201,168,76,0.1);color:var(--gold)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-SILVER" onclick="selectSigAsset('SILVER')">
+      <div class="sig-asset-name">SILVER</div>
+      <div class="sig-asset-score" id="sigscore-SILVER" style="color:var(--muted2)">—</div>
+      <div class="sig-asset-signal" id="sigsig-SILVER" style="background:rgba(90,122,148,0.1);color:var(--muted2)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-BTC" onclick="selectSigAsset('BTC')">
+      <div class="sig-asset-name">BTC</div>
+      <div class="sig-asset-score" id="sigscore-BTC" style="color:var(--orange)">—</div>
+      <div class="sig-asset-signal" id="sigsig-BTC" style="background:rgba(232,123,52,0.1);color:var(--orange)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-XRP" onclick="selectSigAsset('XRP')">
+      <div class="sig-asset-name">XRP</div>
+      <div class="sig-asset-score" id="sigscore-XRP" style="color:var(--blue)">—</div>
+      <div class="sig-asset-signal" id="sigsig-XRP" style="background:rgba(58,127,213,0.1);color:var(--blue)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-URNM" onclick="selectSigAsset('URNM')">
+      <div class="sig-asset-name">URNM</div>
+      <div class="sig-asset-score" id="sigscore-URNM" style="color:var(--teal)">—</div>
+      <div class="sig-asset-signal" id="sigsig-URNM" style="background:rgba(0,212,170,0.1);color:var(--teal)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-COPX" onclick="selectSigAsset('COPX')">
+      <div class="sig-asset-name">COPX</div>
+      <div class="sig-asset-score" id="sigscore-COPX" style="color:var(--orange)">—</div>
+      <div class="sig-asset-signal" id="sigsig-COPX" style="background:rgba(232,123,52,0.1);color:var(--orange)">LOADING</div>
+    </div>
+  </div>
+
+  <!-- Main signals body -->
+  <div class="signals-body" id="signalsBody">
+    <!-- LEFT: Score + factor breakdown -->
+    <div class="sig-left" id="sigLeft">
+      <div class="sig-empty">
+        <div class="sig-empty-icon">▲</div>
+        <div class="sig-empty-text">LOADING SIGNALS...</div>
+      </div>
+    </div>
+    <!-- RIGHT: Entry/Exit + Detail -->
+    <div class="sig-right" id="sigRight">
+      <div class="sig-empty">
+        <div class="sig-empty-icon">◈</div>
+        <div class="sig-empty-text">SELECT ASSET ABOVE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ SLIDE PANEL ═══ -->
-<div id="slidePanel">
   <div class="sp-head">
     <button class="sp-close" onclick="closePanel()">✕</button>
     <div class="sp-cat" id="spCat"></div>
@@ -1078,9 +1262,12 @@ function setMode(mode) {
   currentMode = mode;
   document.getElementById('mapView').classList.toggle('hidden', mode !== 'map');
   document.getElementById('intelView').classList.toggle('hidden', mode !== 'intel');
+  document.getElementById('signalsView').classList.toggle('hidden', mode !== 'signals');
   document.getElementById('btnMap').classList.toggle('active', mode === 'map');
   document.getElementById('btnIntel').classList.toggle('active', mode === 'intel');
+  document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
   if (mode !== 'map') closePanel();
+  if (mode === 'signals' && !sigDataCache['GOLD']) loadAllSignals();
 }
 
 // ═══ NODE DATA ═══
@@ -1549,6 +1736,269 @@ function renderIntel(d){
 }
 
 document.getElementById('intelInput').addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) runIntelAnalysis(); });
+
+// ═══════════════════════════════════════════════
+// ═══ SIGNALS MODE ═══════════════════════════════
+// ═══════════════════════════════════════════════
+
+const SIG_ASSETS = ['GOLD','SILVER','BTC','XRP','URNM','COPX'];
+const sigDataCache = {};
+let sigActiveAsset = 'GOLD';
+let sigLoadingCount = 0;
+
+const SIG_COLORS = {
+  GOLD:'#C9A84C', SILVER:'#8AABB5', BTC:'#E87B34', XRP:'#3A7FD5', URNM:'#00D4AA', COPX:'#E87B34'
+};
+
+const SIG_LABELS = {
+  'STRONG BUY': { bg:'rgba(0,212,170,0.15)', color:'#00D4AA' },
+  'BUY':        { bg:'rgba(0,212,170,0.09)', color:'#00D4AA' },
+  'WATCH':      { bg:'rgba(201,168,76,0.12)', color:'#C9A84C' },
+  'AVOID':      { bg:'rgba(232,57,74,0.12)', color:'#E8394A' },
+  'SHORT':      { bg:'rgba(232,57,74,0.18)', color:'#E8394A' },
+};
+
+const SCORE_COLORS = s => s >= 75 ? '#00D4AA' : s >= 55 ? '#C9A84C' : s >= 35 ? '#E87B34' : '#E8394A';
+
+async function fetchAssetSignal(asset) {
+  const prompt = `NEXUS SIGNALS. March 2026 context: US-Israel-Iran conflict, Strait of Hormuz crisis, gold $5037, oil $107, markets volatile, AUD weak, Melbourne subcontractor investor.
+
+Analyse ${asset} and return ONLY valid JSON (no markdown):
+{
+  "asset":"${asset}",
+  "confluenceScore":75,
+  "signal":"STRONG BUY|BUY|WATCH|AVOID|SHORT",
+  "entryZone":{"low":"$X","high":"$X","note":"why this zone"},
+  "target1":{"price":"$X","note":"first target reason","pct":"+X%"},
+  "target2":{"price":"$X","note":"second target reason","pct":"+X%"},
+  "stopLoss":{"price":"$X","note":"invalidation level","pct":"-X%"},
+  "factors":[
+    {"name":"Macro Trend","score":80,"color":"#00D4AA"},
+    {"name":"Momentum","score":65,"color":"#C9A84C"},
+    {"name":"Geo Risk","score":90,"color":"#00D4AA"},
+    {"name":"USD Pressure","score":70,"color":"#C9A84C"},
+    {"name":"Volume","score":55,"color":"#E87B34"},
+    {"name":"Sentiment","score":60,"color":"#C9A84C"}
+  ],
+  "confluence":[
+    {"factor":"Gold $5037 ATH","aligned":true,"note":"safe haven bid"},
+    {"factor":"USD weakening","aligned":true,"note":"dollar index falling"},
+    {"factor":"Oil spike","aligned":true,"note":"inflation hedge"},
+    {"factor":"Hormuz crisis","aligned":true,"note":"geopolitical premium"},
+    {"factor":"Central bank buying","aligned":false,"note":"not relevant"}
+  ],
+  "thesis":"2-3 sentence directional thesis for ${asset} with specific current price context and what drives the next move",
+  "watchItems":[
+    {"icon":"📡","title":"Key signal to watch","desc":"specific thing to monitor","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},
+    {"icon":"📊","title":"Confirmation event","desc":"what confirms the move","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},
+    {"icon":"⚠️","title":"Invalidation trigger","desc":"what kills this thesis","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}
+  ],
+  "timeframe":"recommended holding period",
+  "positionSize":"suggestion e.g. 5-8% of portfolio"
+}
+
+Be specific to ${asset}. Use real approximate March 2026 prices. Confluence factors should be ${asset}-specific.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model:"claude-sonnet-4-20250514", max_tokens:1000,
+      messages:[{role:"user",content:prompt}]
+    })
+  });
+  const d = await res.json();
+  const t = d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+  return JSON.parse(t);
+}
+
+async function loadAllSignals() {
+  const btn = document.getElementById('sigRefreshBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ LOADING...';
+  sigLoadingCount = SIG_ASSETS.length;
+
+  // Reset tab scores
+  SIG_ASSETS.forEach(a => {
+    document.getElementById('sigscore-'+a).textContent = '—';
+    document.getElementById('sigsig-'+a).textContent = 'LOADING';
+  });
+
+  // Load assets in parallel
+  const promises = SIG_ASSETS.map(async asset => {
+    try {
+      const data = await fetchAssetSignal(asset);
+      sigDataCache[asset] = data;
+      updateAssetTab(asset, data);
+      if (asset === sigActiveAsset) renderSigDetail(data);
+    } catch(e) {
+      console.error('Signal failed for', asset, e);
+      sigDataCache[asset] = null;
+      document.getElementById('sigsig-'+asset).textContent = 'ERR';
+    }
+  });
+
+  await Promise.all(promises);
+
+  btn.disabled = false;
+  btn.textContent = '↻ REFRESH ALL';
+  document.getElementById('sigLastUpdate').textContent = 'LAST UPDATE: ' + new Date().toUTCString().slice(17,22) + ' UTC';
+}
+
+function updateAssetTab(asset, data) {
+  const score = data.confluenceScore || 0;
+  const sig = data.signal || 'WATCH';
+  const col = SIG_COLORS[asset] || '#C9A84C';
+  const lbl = SIG_LABELS[sig] || SIG_LABELS['WATCH'];
+
+  document.getElementById('sigscore-'+asset).textContent = score;
+  document.getElementById('sigscore-'+asset).style.color = SCORE_COLORS(score);
+  document.getElementById('sigsig-'+asset).textContent = sig;
+  document.getElementById('sigsig-'+asset).style.background = lbl.bg;
+  document.getElementById('sigsig-'+asset).style.color = lbl.color;
+}
+
+function selectSigAsset(asset) {
+  sigActiveAsset = asset;
+  document.querySelectorAll('.sig-asset-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sigtab-'+asset).classList.add('active');
+
+  if (sigDataCache[asset]) {
+    renderSigDetail(sigDataCache[asset]);
+  } else {
+    document.getElementById('sigLeft').innerHTML = '<div class="sig-empty"><div class="sig-empty-icon">▲</div><div class="sig-empty-text">LOADING...</div></div>';
+    document.getElementById('sigRight').innerHTML = '<div class="sig-empty"><div class="sig-empty-icon">◈</div><div class="sig-empty-text">FETCHING SIGNAL...</div></div>';
+  }
+}
+
+function renderSigDetail(data) {
+  const score = data.confluenceScore || 0;
+  const sig = data.signal || 'WATCH';
+  const col = SCORE_COLORS(score);
+  const lbl = SIG_LABELS[sig] || SIG_LABELS['WATCH'];
+  const asset = data.asset;
+  const assetColor = SIG_COLORS[asset] || col;
+
+  // ── LEFT: Score dial + factors ──
+  const factorsHtml = (data.factors||[]).map(f => `
+    <div class="sig-factor-row">
+      <span class="sig-factor-name">${f.name}</span>
+      <div class="sig-factor-track"><div class="sig-factor-fill" style="width:${f.score}%;background:${f.color||col}"></div></div>
+      <span class="sig-factor-val" style="color:${f.color||col}">${f.score}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sigLeft').innerHTML = `
+    <div class="sig-dial-wrap">
+      <div class="sig-dial-outer" style="background:conic-gradient(${col} 0% ${score}%, var(--surface2) ${score}% 100%);padding:6px">
+        <div style="width:100%;height:100%;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center">
+          <div class="sig-dial-number" style="color:${col}">${score}</div>
+        </div>
+      </div>
+      <div class="sig-dial-label">CONFLUENCE SCORE / 100</div>
+      <div class="sig-signal-badge" style="background:${lbl.bg};color:${lbl.color}">● ${sig}</div>
+    </div>
+
+    <div class="sig-factors">
+      <div class="sig-factor-label">FACTOR BREAKDOWN</div>
+      ${factorsHtml}
+    </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:2px;padding:12px">
+      <div class="sig-section-title" style="margin-bottom:8px">POSITION GUIDE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:3px">TIMEFRAME</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text)">${data.timeframe||'—'}</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:3px">SIZE</div>
+          <div style="font-family:var(--mono);font-size:11px;color:${assetColor}">${data.positionSize||'—'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ── RIGHT: Zones + confluence + thesis + watch ──
+  const ez = data.entryZone || {};
+  const t1 = data.target1 || {};
+  const t2 = data.target2 || {};
+  const sl = data.stopLoss || {};
+
+  const confHtml = (data.confluence||[]).map(c => `
+    <div class="sig-conf-row">
+      <span class="sig-conf-factor">${c.factor}</span>
+      <div class="sig-conf-status">
+        <div class="sig-conf-dot" style="background:${c.aligned?'#00D4AA':'#E8394A'}"></div>
+        <span style="color:${c.aligned?'#00D4AA':'#E8394A'};font-size:10px">${c.aligned?'ALIGNED':'NEUTRAL'}</span>
+        <span style="color:var(--muted);font-size:10px">· ${c.note}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const watchHtml = (data.watchItems||[]).map(w => `
+    <div class="sig-watch-item">
+      <div class="sig-watch-icon">${w.icon}</div>
+      <div class="sig-watch-content">
+        <div class="sig-watch-title">${w.title}</div>
+        <div class="sig-watch-desc">${w.desc}</div>
+      </div>
+      <span class="sig-watch-urgency" style="background:${w.uc};color:${w.ut}">${w.urgency}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sigRight').innerHTML = `
+    <div>
+      <div class="sig-section-title">ENTRY / EXIT ZONES</div>
+      <div class="sig-zones">
+        <div class="sig-zone" style="border-top-color:#00D4AA">
+          <div class="sig-zone-label">ENTRY ZONE</div>
+          <div class="sig-zone-val" style="color:#00D4AA">${ez.low||'—'} – ${ez.high||'—'}</div>
+          <div class="sig-zone-note">${ez.note||''}</div>
+        </div>
+        <div class="sig-zone" style="border-top-color:${assetColor}">
+          <div class="sig-zone-label">TARGET 1</div>
+          <div class="sig-zone-val" style="color:${assetColor}">${t1.price||'—'} <span style="font-size:12px;color:var(--teal)">${t1.pct||''}</span></div>
+          <div class="sig-zone-note">${t1.note||''}</div>
+        </div>
+        <div class="sig-zone" style="border-top-color:#E8394A">
+          <div class="sig-zone-label">STOP LOSS</div>
+          <div class="sig-zone-val" style="color:#E8394A">${sl.price||'—'} <span style="font-size:12px;color:#E8394A">${sl.pct||''}</span></div>
+          <div class="sig-zone-note">${sl.note||''}</div>
+        </div>
+      </div>
+      ${t2.price ? `<div class="sig-zone" style="border:1px solid var(--border2);border-top:2px solid var(--purple);border-radius:2px;padding:10px 14px;margin-top:10px">
+        <div class="sig-zone-label">TARGET 2 (EXTENDED)</div>
+        <div class="sig-zone-val" style="color:var(--purple)">${t2.price} <span style="font-size:12px;color:var(--teal)">${t2.pct||''}</span></div>
+        <div class="sig-zone-note">${t2.note||''}</div>
+      </div>` : ''}
+    </div>
+
+    <div>
+      <div class="sig-section-title">CONFLUENCE ALIGNMENT</div>
+      <div class="sig-confluence">
+        <div class="sig-conf-head">
+          <span class="sig-conf-title">MACRO FACTORS vs ${asset}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:${col}">${score}/100</span>
+        </div>
+        <div class="sig-conf-body">${confHtml}</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sig-section-title">DIRECTIONAL THESIS</div>
+      <div class="sig-thesis">
+        <div class="sig-thesis-label">// ${asset} — ${sig}</div>
+        ${data.thesis||'—'}
+      </div>
+    </div>
+
+    <div>
+      <div class="sig-section-title">WHAT TO WATCH</div>
+      <div class="sig-watch">${watchHtml}</div>
+    </div>
+  `;
+}
+
 </script>
 </body>
 </html>
