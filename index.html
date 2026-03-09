@@ -1482,17 +1482,11 @@ async function openPanel(node){
     const res=await fetch("/api/claude",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514", max_tokens:1000,
-        messages:[{role:"user",content:`NEXUS intelligence system. Analyse node: "${node.label.replace('\n',' ')}" in context of March 2026: US-Israel strikes on Iran, Strait of Hormuz crisis, gold $5037, oil $107, markets dumping, financial reset concerns. Australian subcontractor investor in Melbourne.
-
-Respond ONLY with JSON (no markdown):
-{
-  "why":"2-3 sentences explaining what this node is and why it matters right now with specific current data",
-  "shadow":"2-3 sentences on the deeper hidden pattern — what mainstream won't say, who benefits, the conspiracy-adjacent view that has real evidence",  
-  "money":"2-3 sentences on specific dollar impact for Melbourne Australian investor/subcontractor with numbers",
-  "act":"immediate (48hrs), shortTerm (2-4 weeks), longTerm (6-18 months) — one sentence each action step",
-  "connectedInsights":{"${node.connections.slice(0,3).join('":"insight","')}":"insight"}
-}`}]
+        model:"claude-sonnet-4-20250514", max_tokens:600,
+        messages:[{role:"user",content:`NEXUS. March 2026: gold $5037, oil $107, Hormuz crisis, AUD weak. Australian Melbourne investor.
+Analyse node: "${node.label.replace('\n',' ')}" — connected to: ${node.connections.slice(0,3).join(', ')}.
+Reply ONLY with JSON no markdown:
+{"why":"2 sentences max","shadow":"2 sentences max","money":"2 sentences max","act":{"immediate":"1 sentence","shortTerm":"1 sentence","longTerm":"1 sentence"},"connectedInsights":{}}`}]
       })
     });
     const d=await res.json();
