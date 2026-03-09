@@ -2399,6 +2399,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             x: typeof d.x === 'number' ? d.x : 0,
             y: typeof d.y === 'number' ? d.y : 0,
             label: d.label || d.id.toUpperCase(),
+            fullLabel: d.fullLabel || d.label || d.id,
             type: d.type && typeColors[d.type] ? d.type : 'financial',
             size: d.size || 26,
             connections: Array.isArray(d.connections) ? d.connections.slice() : [],
@@ -2426,6 +2427,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             x: typeof d.x === 'number' ? d.x : 0,
             y: typeof d.y === 'number' ? d.y : 0,
             label: d.label || d.id.toUpperCase(),
+            fullLabel: d.fullLabel || d.label || d.id,
             type: d.type && typeColors[d.type] ? d.type : 'financial',
             size: d.size || 26,
             connections: Array.isArray(d.connections) ? d.connections.slice() : [],
@@ -2434,6 +2436,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           // Ensure KV-loaded dynamic nodes are visible (have animation state)
           anim[newNode.id] = { s: 1 };
         });
+        // After KV load, clean up any duplicate ideas
+        pruneDuplicateNodes();
       } catch (e) {
         console.warn('Failed to load dynamic nodes from server, falling back to local:', e);
         loadDynamicNodesFromLocal();
@@ -2479,7 +2483,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     }
 
     // Build index and normalise connections (graph integrity)
-    pruneDuplicateNodes();
     const nodeIndex = new Map();
     nodes.forEach(n => {
       if (nodeIndex.has(n.id)) {
@@ -2515,6 +2518,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           x: n.x,
           y: n.y,
           label: n.label,
+          fullLabel: n.fullLabel || n.label,
           type: n.type,
           size: n.size,
           connections: n.connections || [],
@@ -2633,11 +2637,13 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
         const type = (nn.type && typeColors[nn.type]) ? nn.type : sourceNode.type;
         const size = Math.max(22, Math.min(34, nn.size || sourceNode.size * 0.85));
+        const fullLabel = (nn.fullLabel || label).toUpperCase();
         const newNode = {
           id,
           x,
           y,
-          label: label.toUpperCase().slice(0, 16),
+          label: fullLabel.slice(0, 16),
+          fullLabel,
           type,
           size,
           connections: [sourceNode.id]
@@ -2796,11 +2802,17 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const tt = document.getElementById('mapTooltip');
       if (n) {
         canvas.style.cursor = 'pointer';
-        tt.style.display = 'block'; tt.style.left = (e.clientX + 14) + 'px'; tt.style.top = (e.clientY - 50) + 'px';
-        document.getElementById('ttName').textContent = n.label.replace('\n', ' ');
+        tt.style.display = 'block';
+        tt.style.left = (e.clientX + 14) + 'px';
+        tt.style.top = (e.clientY - 50) + 'px';
+        const full = (n.fullLabel || n.label || '').replace(/\s+/g, ' ').trim();
+        document.getElementById('ttName').textContent = full || n.label.replace('\n', ' ');
         document.getElementById('ttType').textContent = n.type.toUpperCase() + ' NODE';
         tt.style.borderLeftColor = typeColors[n.type];
-      } else { tt.style.display = 'none'; canvas.style.cursor = isDrag ? 'grabbing' : 'grab'; }
+      } else {
+        tt.style.display = 'none';
+        canvas.style.cursor = isDrag ? 'grabbing' : 'grab';
+      }
       if (isDrag) { tvx += (e.clientX - lmx) / sc; tvy += (e.clientY - lmy) / sc; lmx = e.clientX; lmy = e.clientY; }
     });
 
@@ -2845,7 +2857,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const nid = 'custom_' + Date.now();
       const nn = {
         id: nid, x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
-        label: q.toUpperCase().slice(0, 16), type: 'financial', size: 26, connections: ['gold', 'usd', 'aus_rba']
+        label: q.toUpperCase().slice(0, 16),
+        fullLabel: q,
+        type: 'financial',
+        size: 26,
+        connections: ['gold', 'usd', 'aus_rba']
       };
       nodes.push(nn); anim[nid] = { s: 0 };
       saveDynamicNodes();
