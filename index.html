@@ -1877,6 +1877,9 @@
       <div class="legend-row" data-type="all">
         <div class="legend-dot" style="background:#C9A84C"></div>All
       </div>
+      <div class="legend-row" data-type="urgent">
+        <div class="legend-dot" style="background:#FF4040"></div>Urgent hub & risks
+      </div>
       <div class="legend-row" data-type="geo">
         <div class="legend-dot" style="background:#E8394A"></div>Geopolitical
       </div>
@@ -2214,8 +2217,8 @@
       riskHighlights.shortTerm = shortNode ? {
         nodeId: shortNode.id,
         headline: 'Hormuz / oil supply shock',
-        reason: 'Tighter shipping lanes and higher oil prices can hit Australian fuel costs and subcontractor margins quickly.',
-        defend: 'Keep cash buffers tight, avoid fixed‑price contracts that ignore fuel escalation, and consider indirect oil hedges.'
+        reason: 'Tighter shipping lanes and higher oil prices can quickly show up in everyday fuel costs and delivery prices.',
+        defend: 'Keep extra cash on hand, avoid fixed‑price jobs or expenses that ignore rising fuel costs, and consider simple ways to reduce fuel use.'
       } : null;
       riskHighlights.longTerm = longNode ? {
         nodeId: longNode.id,
@@ -2236,7 +2239,7 @@
           .slice(0, 80)
           .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace('\n', ' ')} [${n.type}]`)
           .join(', ');
-        const prompt = `You are NEXUS, an early-warning system for an Australian subcontractor/investor in Melbourne. Use clear, simple language that a non‑financial person can understand. Avoid jargon and complex terms; explain things like you would to a smart friend at the pub.
+        const prompt = `You are NEXUS, an early-warning system for a regular person who wants to protect their money and way of life (with an Australian lens by default). Use clear, simple language that a non‑financial person can understand. Avoid jargon and complex terms; explain things like you would to a smart friend at the pub.
 
 Here is the current map of key nodes (id:label[type]):
 ${summary}
@@ -2245,7 +2248,7 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 - the single biggest SHORT-TERM (0-3 months) risk for this user
 - the single biggest LONG-TERM (6-18 months) structural risk
 
-For each, also give a concrete defence plan focused on what this Melbourne subcontractor/investor can actually do (positioning, hedging, timing, or preparation).
+For each, also give a concrete defence plan focused on what this person can actually do in real life (simple positioning, rough timing, or preparation steps). Avoid complex products or professional‑trader language.
 
 Respond ONLY with strict JSON, no markdown, no commentary:
 {
@@ -2350,27 +2353,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const lastScan = document.getElementById('urgentLastScan');
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
-      // Update the existing "URGENT HUB" node on the map so it links to the current high‑risk bubbles
-      const urgentIds = [];
-      if (st && st.nodeId) urgentIds.push(st.nodeId);
-      if (lt && lt.nodeId && lt.nodeId !== st?.nodeId) urgentIds.push(lt.nodeId);
-      if (urgentIds.length) {
-        const hub = nodes.find(n => n.id === 'urgent_hub');
-        if (hub) {
-          // Only keep links from the hub to the latest urgent nodes
-          hub.connections = Array.from(new Set(urgentIds));
-        }
-        urgentIds.forEach(id => {
-          const n = nodes.find(x => x.id === id);
-          if (n) {
-            if (!Array.isArray(n.connections)) n.connections = [];
-            if (!n.connections.includes(hub.id)) n.connections.push(hub.id);
-          }
-        });
-        // Persist hub + links as part of dynamic node set
-        saveDynamicNodes();
-      }
-
       if (shortBox && shortEmpty) {
         if (st) {
           shortEmpty.style.display = 'none';
@@ -2524,8 +2506,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'apra', x: 280, y: 185, label: 'APRA\nPOWERS', type: 'shadow', size: 24, connections: ['super_aus', 'cash_ban'] },
       { id: 'ai_silver', x: -110, y: -335, label: 'AI SILVER\nDEMAND', type: 'resource', size: 22, connections: ['silver', 'solar'] },
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
-      // URGENT HUB — central node that links to whatever the URGENT scan says matters most right now
-      { id: 'urgent_hub', x: 0, y: 260, label: 'URGENT\nHUB', type: 'policy', size: 30, connections: [] },
     ];
 
     // Bring bubbles closer together (layout compactness)
@@ -2819,13 +2799,31 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       // Gentle continuous relaxation so nodes softly push apart over time
       relaxLayout(1, 0.18);
 
+      // Precompute which nodes are visible under the current type filter
+      let urgentVisibleIds = null;
+      if (typeFilter === 'urgent') {
+        urgentVisibleIds = new Set();
+        const stVis = riskHighlights.shortTerm && riskHighlights.shortTerm.nodeId;
+        const ltVis = riskHighlights.longTerm && riskHighlights.longTerm.nodeId;
+        if (stVis) urgentVisibleIds.add(stVis);
+        if (ltVis) urgentVisibleIds.add(ltVis);
+      }
+      const isVisibleByFilter = n => {
+        if (!typeFilter) return true;
+        if (typeFilter === 'urgent') {
+          // Only show the bubbles currently tagged as urgent
+          return urgentVisibleIds ? urgentVisibleIds.has(n.id) : false;
+        }
+        return n.type === typeFilter;
+      };
+
       // Edges
       nodes.forEach(n => {
-        if (typeFilter && n.type !== typeFilter) return;
+        if (!isVisibleByFilter(n)) return;
         n.connections.forEach(cid => {
           const t = nodes.find(x => x.id === cid); if (!t) return;
           if ((n.type === 'shadow' || t.type === 'shadow') && !showShadow) return;
-          if (typeFilter && t.type !== typeFilter) return;
+          if (!isVisibleByFilter(t)) return;
           const an = anim[n.id], at = anim[t.id];
           if (!an || !at || an.s < 0.5 || at.s < 0.5) return;
           const pn = npos(n), pt = npos(t);
@@ -2855,7 +2853,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       // Nodes
       ['aus', 'resource', 'financial', 'policy', 'geo', 'shadow'].forEach(type => {
         nodes.filter(n => n.type === type).forEach(n => {
-          if (typeFilter && n.type !== typeFilter) return;
+          if (!isVisibleByFilter(n)) return;
           if (n.type === 'shadow' && !showShadow) return;
           const a = anim[n.id]; if (!a || a.s <= 0) return;
           const p = npos(n), r = n.size * sc * a.s;
@@ -2973,7 +2971,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     function nodeAt(mx, my) {
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
-        if (typeFilter && n.type !== typeFilter) continue;
+        if (typeFilter === 'urgent') {
+          const stVis = riskHighlights.shortTerm && riskHighlights.shortTerm.nodeId;
+          const ltVis = riskHighlights.longTerm && riskHighlights.longTerm.nodeId;
+          const ok = n.id === stVis || n.id === ltVis;
+          if (!ok) continue;
+        } else if (typeFilter && n.type !== typeFilter) {
+          continue;
+        }
         if (n.type === 'shadow' && !showShadow) continue;
         const p = npos(n), r = n.size * sc, dx = mx - p.x, dy = my - p.y;
         if (dx * dx + dy * dy < r * r * 1.6) return n;
@@ -3082,7 +3087,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           body: JSON.stringify({
             model: "claude-haiku-4-5-20251001", max_tokens: 1200,
             messages: [{
-              role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is an Australian investor/subcontractor in Melbourne.
+              role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is a regular person (with an Australian lens by default) who wants to understand risks and protect their savings and lifestyle. Use simple language, avoid finance jargon, and explain ideas like you would to a smart friend who does not work in markets.
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
@@ -3181,7 +3186,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
       const sys = `You are a macro market analyst providing financial education. Context: March 2026, gold elevated ~$5000, oil above $100, Middle East supply disruptions affecting shipping, USD weakening, AUD under pressure, Australian property market uncertain, RBA navigating inflation.
 
-The reader is an Australian investor/subcontractor in Melbourne seeking market education.
+The reader is a regular person (with an Australian lens by default) seeking clear, simple guidance on what is happening and how it might affect their money and life.
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
@@ -3376,7 +3381,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     const SCORE_COLORS = s => s >= 75 ? '#00D4AA' : s >= 55 ? '#C9A84C' : s >= 35 ? '#E87B34' : '#E8394A';
 
     async function fetchAssetSignal(asset) {
-      const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
+      const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. The reader is a regular person (with an Australian lens by default) who wants simple, clear guidance. Avoid jargon and complex products — explain ideas in plain English.
 Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
 {"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
 
