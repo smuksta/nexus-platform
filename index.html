@@ -1762,48 +1762,14 @@ const SIG_LABELS = {
 const SCORE_COLORS = s => s >= 75 ? '#00D4AA' : s >= 55 ? '#C9A84C' : s >= 35 ? '#E87B34' : '#E8394A';
 
 async function fetchAssetSignal(asset) {
-  const prompt = `NEXUS SIGNALS. March 2026 context: US-Israel-Iran conflict, Strait of Hormuz crisis, gold $5037, oil $107, markets volatile, AUD weak, Melbourne subcontractor investor.
-
-Analyse ${asset} and return ONLY valid JSON (no markdown):
-{
-  "asset":"${asset}",
-  "confluenceScore":75,
-  "signal":"STRONG BUY|BUY|WATCH|AVOID|SHORT",
-  "entryZone":{"low":"$X","high":"$X","note":"why this zone"},
-  "target1":{"price":"$X","note":"first target reason","pct":"+X%"},
-  "target2":{"price":"$X","note":"second target reason","pct":"+X%"},
-  "stopLoss":{"price":"$X","note":"invalidation level","pct":"-X%"},
-  "factors":[
-    {"name":"Macro Trend","score":80,"color":"#00D4AA"},
-    {"name":"Momentum","score":65,"color":"#C9A84C"},
-    {"name":"Geo Risk","score":90,"color":"#00D4AA"},
-    {"name":"USD Pressure","score":70,"color":"#C9A84C"},
-    {"name":"Volume","score":55,"color":"#E87B34"},
-    {"name":"Sentiment","score":60,"color":"#C9A84C"}
-  ],
-  "confluence":[
-    {"factor":"Gold $5037 ATH","aligned":true,"note":"safe haven bid"},
-    {"factor":"USD weakening","aligned":true,"note":"dollar index falling"},
-    {"factor":"Oil spike","aligned":true,"note":"inflation hedge"},
-    {"factor":"Hormuz crisis","aligned":true,"note":"geopolitical premium"},
-    {"factor":"Central bank buying","aligned":false,"note":"not relevant"}
-  ],
-  "thesis":"2-3 sentence directional thesis for ${asset} with specific current price context and what drives the next move",
-  "watchItems":[
-    {"icon":"📡","title":"Key signal to watch","desc":"specific thing to monitor","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},
-    {"icon":"📊","title":"Confirmation event","desc":"what confirms the move","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},
-    {"icon":"⚠️","title":"Invalidation trigger","desc":"what kills this thesis","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}
-  ],
-  "timeframe":"recommended holding period",
-  "positionSize":"suggestion e.g. 5-8% of portfolio"
-}
-
-Be specific to ${asset}. Use real approximate March 2026 prices. Confluence factors should be ${asset}-specific.`;
+  const prompt = `March 2026: gold $5037, oil $107, Hormuz crisis, USD weak, AUD falling. Melbourne investor.
+Analyse ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
+{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Geo risk","aligned":true,"note":"brief"},{"factor":"Oil spike","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
 
   const res = await fetch("/api/claude",{
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:1000,
+      model:"claude-haiku-4-5-20251001", max_tokens:800,
       messages:[{role:"user",content:prompt}]
     })
   });
