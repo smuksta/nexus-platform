@@ -1652,7 +1652,7 @@ function renderIntel(d){
         <span class="icard-badge" style="background:${sentCol}20;color:${sentCol}">${d.sentiment||'ANALYSING'}</span>
       </div>
       <div class="icard-body">
-        ${(d.analysis||[]).map(p=>`<p class="analysis-para">${p}</p>`).join('')}
+        ${(d.analysis||[]).map(p=>`<p class="analysis-para">${p != null ? String(p) : ''}</p>`).join('')}
       </div>
     </div>
 
