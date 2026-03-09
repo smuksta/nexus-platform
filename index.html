@@ -195,6 +195,71 @@
       animation: livepulse 1.5s infinite;
     }
 
+    .risk-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 28px;
+      border-bottom: 1px solid var(--border2);
+      background: linear-gradient(to right, rgba(232, 123, 52, 0.11), transparent);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .risk-label {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(232, 123, 52, 0.35);
+      color: #000;
+    }
+
+    .risk-marquee {
+      overflow: hidden;
+      position: relative;
+      flex: 1;
+      white-space: nowrap;
+    }
+
+    .risk-inner {
+      display: inline-block;
+      animation: riskScroll 24s linear infinite;
+    }
+
+    .risk-item {
+      margin-right: 40px;
+      cursor: pointer;
+    }
+
+    .risk-item span {
+      opacity: 0.7;
+    }
+
+    .risk-item span.risk-tag {
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: var(--gold2);
+      margin-right: 6px;
+    }
+
+    .risk-item:hover span {
+      opacity: 1;
+    }
+
+    @keyframes riskScroll {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
     @keyframes livepulse {
 
       0%,
@@ -1767,6 +1832,15 @@
     </div>
   </div>
 
+  <div class="risk-bar" id="riskBar">
+    <div class="risk-label">ALERT</div>
+    <div class="risk-marquee" id="riskBarClick">
+      <div class="risk-inner" id="riskBarContent">
+        Scanning map for biggest near-term and long-term risks...
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ MAP VIEW ═══ -->
   <div class="view" id="mapView">
     <canvas id="mapCanvas"></canvas>
@@ -2043,6 +2117,9 @@
       throw new Error('Response was not valid JSON. Starts with: ' + snippet);
     }
 
+    // ═══ GLOBAL STATE ═══
+    const riskHighlights = { shortTerm: null, longTerm: null };
+
     // ═══ CLOCK ═══
     setInterval(() => {
       document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17, 22) + ' UTC';
@@ -2082,6 +2159,89 @@
     refreshLiveStats();
     setInterval(refreshLiveStats, 60000);
 
+    // Scan the map for biggest near and long-term risks and populate the alert bar
+    async function scanMapRisk() {
+      const barEl = document.getElementById('riskBarContent');
+      if (barEl) {
+        barEl.textContent = 'Scanning map for biggest near-term and long-term risks...';
+      }
+      try {
+        const summary = nodes.map(n => `${n.id}:${n.label.replace('\n', ' ')} [${n.type}]`).join(', ');
+        const prompt = `You are NEXUS, an early-warning system for an Australian subcontractor/investor in Melbourne.
+
+Here is the current map of key nodes (id:label[type]):
+${summary}
+
+From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hormuz disruptions, USD weakening, AUD under pressure), pick:
+- the single biggest SHORT-TERM (0-3 months) risk for this user
+- the single biggest LONG-TERM (6-18 months) structural risk
+
+Respond ONLY with strict JSON, no markdown, no commentary:
+{
+  "shortTerm":{"nodeId":"ID_FROM_LIST","headline":"very short line","reason":"1-2 sentence why this is the biggest near-term risk"},
+  "longTerm":{"nodeId":"ID_FROM_LIST","headline":"very short line","reason":"1-2 sentence why this is the biggest long-term risk"}
+}`;
+
+        const res = await fetch(NEXUS_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 400,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+        const d = await res.json();
+        if (!Array.isArray(d.content)) throw new Error(d.error || 'No content field in risk scan response');
+        const raw = d.content.map(i => i.text || '').join('');
+        const parsed = parseModelJsonOrThrow(raw);
+        riskHighlights.shortTerm = parsed.shortTerm || null;
+        riskHighlights.longTerm = parsed.longTerm || null;
+        updateRiskBar();
+      } catch (e) {
+        console.error('RISK SCAN ERROR:', e);
+        if (barEl) {
+          barEl.textContent = 'Alert scan unavailable: ' + e.message;
+        }
+      }
+    }
+
+    function updateRiskBar() {
+      const el = document.getElementById('riskBarContent');
+      if (!el) return;
+      const st = riskHighlights.shortTerm;
+      const lt = riskHighlights.longTerm;
+      if (!st && !lt) {
+        el.textContent = 'No clear priority alerts right now. Click any node to analyse.';
+        return;
+      }
+      const parts = [];
+      if (st && st.nodeId) {
+        parts.push(
+          `<span class="risk-item" data-node="${st.nodeId}"><span class="risk-tag">NOW</span><span>${st.headline || 'Short-term risk'}</span></span>`
+        );
+      }
+      if (lt && lt.nodeId) {
+        parts.push(
+          `<span class="risk-item" data-node="${lt.nodeId}"><span class="risk-tag">6-18M</span><span>${lt.headline || 'Long-term risk'}</span></span>`
+        );
+      }
+      el.innerHTML = parts.join(' ');
+
+      // Delegate clicks from the marquee to open the relevant node
+      const wrapper = document.getElementById('riskBarClick');
+      if (wrapper && !wrapper._riskBound) {
+        wrapper.addEventListener('click', e => {
+          const target = e.target.closest('.risk-item');
+          if (!target) return;
+          const nodeId = target.getAttribute('data-node');
+          const n = nodes.find(x => x.id === nodeId);
+          if (n) openPanel(n);
+        });
+        wrapper._riskBound = true;
+      }
+    }
+
     // ═══ MODE SWITCHING ═══
     let currentMode = 'map';
 
@@ -2094,6 +2254,9 @@
       document.getElementById('btnIntel').classList.toggle('active', mode === 'intel');
       document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
       if (mode !== 'map') closePanel();
+      if (mode === 'map' && !riskHighlights.shortTerm && !riskHighlights.longTerm) {
+        scanMapRisk();
+      }
       if (mode === 'signals' && !sigDataCache['GOLD']) {
         // Auto-run a market scan the first time you enter SIGNALS
         if (typeof discoverSignals === 'function') {
@@ -2150,6 +2313,60 @@
     const LAYOUT_COMPACTNESS = 0.82;
     nodes.forEach(n => { n.x *= LAYOUT_COMPACTNESS; n.y *= LAYOUT_COMPACTNESS; });
 
+    // Track original seed nodes so we can persist only new ones
+    const baseNodeIds = new Set(nodes.map(n => n.id));
+
+    // Load any previously saved dynamic nodes from localStorage (fallback)
+    function loadDynamicNodesFromLocal() {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      try {
+        const rawDyn = window.localStorage.getItem('nexus_dynamic_nodes_v1');
+        if (!rawDyn) return;
+        const dyn = JSON.parse(rawDyn);
+        if (!Array.isArray(dyn)) return;
+        dyn.forEach(d => {
+          if (!d || !d.id || baseNodeIds.has(d.id)) return;
+          if (nodes.find(x => x.id === d.id)) return;
+          nodes.push({
+            id: d.id,
+            x: typeof d.x === 'number' ? d.x : 0,
+            y: typeof d.y === 'number' ? d.y : 0,
+            label: d.label || d.id.toUpperCase(),
+            type: d.type && typeColors[d.type] ? d.type : 'financial',
+            size: d.size || 26,
+            connections: Array.isArray(d.connections) ? d.connections.slice() : [],
+          });
+        });
+      } catch (e) {
+        console.warn('Failed to load dynamic nodes from localStorage:', e);
+      }
+    }
+
+    async function loadDynamicNodesFromServer() {
+      try {
+        const res = await fetch(NEXUS_WORKER_URL.replace(/\/$/, '') + '/map');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const dyn = Array.isArray(data.dynamicNodes) ? data.dynamicNodes : [];
+        dyn.forEach(d => {
+          if (!d || !d.id || baseNodeIds.has(d.id)) return;
+          if (nodes.find(x => x.id === d.id)) return;
+          nodes.push({
+            id: d.id,
+            x: typeof d.x === 'number' ? d.x : 0,
+            y: typeof d.y === 'number' ? d.y : 0,
+            label: d.label || d.id.toUpperCase(),
+            type: d.type && typeColors[d.type] ? d.type : 'financial',
+            size: d.size || 26,
+            connections: Array.isArray(d.connections) ? d.connections.slice() : [],
+          });
+        });
+      } catch (e) {
+        console.warn('Failed to load dynamic nodes from server, falling back to local:', e);
+        loadDynamicNodesFromLocal();
+      }
+    }
+
     // Build index and normalise connections (graph integrity)
     const nodeIndex = new Map();
     nodes.forEach(n => {
@@ -2175,6 +2392,38 @@
         }
       });
     });
+
+    function saveDynamicNodes() {
+      if (typeof window === 'undefined') return;
+
+      const dyn = nodes
+        .filter(n => !baseNodeIds.has(n.id))
+        .map(n => ({
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          label: n.label,
+          type: n.type,
+          size: n.size,
+          connections: n.connections || [],
+        }));
+
+      // Local fallback so your own browser always remembers the map
+      if (window.localStorage) {
+        try {
+          window.localStorage.setItem('nexus_dynamic_nodes_v1', JSON.stringify(dyn));
+        } catch (e) {
+          console.warn('Failed to save dynamic nodes to localStorage:', e);
+        }
+      }
+
+      // Shared state via Cloudflare Worker + KV
+      fetch(NEXUS_WORKER_URL.replace(/\/$/, '') + '/map', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dynamicNodes: dyn }),
+      }).catch(e => console.warn('Failed to sync dynamic nodes to server:', e));
+    }
 
     // Lightweight layout relaxation so bubbles don't sit on top of each other
     function relaxLayout(iterations = 8, strength = 0.28) {
@@ -2286,6 +2535,7 @@
         anim[id] = { s: 0 };
         setTimeout(() => { anim[id].s = 1; }, 300 + idx * 120);
       });
+      saveDynamicNodes();
     }
 
     function npos(n) { return { x: W / 2 + (n.x + vx) * sc, y: H / 2 + (n.y + vy) * sc }; }
@@ -2379,7 +2629,13 @@
 
       requestAnimationFrame(drawAll);
     }
-    drawAll();
+    // Load shared dynamic nodes, then start the render loop
+    loadDynamicNodesFromServer().then(() => {
+      relaxLayout(8, 0.3);
+      drawAll();
+    }).catch(() => {
+      drawAll();
+    });
 
     // ═══ MAP INTERACTION ═══
     function nodeAt(mx, my) {
@@ -2443,6 +2699,7 @@
         label: q.toUpperCase().slice(0, 16), type: 'financial', size: 26, connections: ['gold', 'usd', 'aus_rba']
       };
       nodes.push(nn); anim[nid] = { s: 0 };
+      saveDynamicNodes();
       setTimeout(() => { anim[nid].s = 1; openPanel(nn); }, 300);
     }
 
