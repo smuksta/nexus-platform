@@ -2278,52 +2278,14 @@ Reply ONLY with JSON no markdown:
       loadIdx = 0;
       loadTimer = setInterval(() => { document.getElementById('intelLoadingText').textContent = loadMsgs[loadIdx++ % loadMsgs.length]; }, 900);
 
-      const sys = `You are NEXUS INTEL, elite market intelligence. Current context: March 2026, US-Israel strikes on Iran, Strait of Hormuz crisis (tankers down from 24/day to 4), gold at $5037 USD, oil $107, ASX and US markets dumping, AUD weak, CBDC discussions active in Australia, super fund systemic risk concerns growing.
-
-The user is an Australian subcontractor/investor in Melbourne who understands macro well.
-
-Respond ONLY with valid JSON (no markdown, no backticks):
-{
-  "asset":"SHORT NAME",
-  "sentiment":"BULLISH|BEARISH|VOLATILE|NEUTRAL",
-  "analysis":["paragraph 1 — what is happening and why with specific numbers","paragraph 2 — the mechanism and threshold","paragraph 3 — Australian specific impact"],
-  "impactRadar":[
-    {"asset":"GOLD","dir":"up|down|neutral","pct":80,"note":"brief why"},
-    {"asset":"SILVER","dir":"up|down|neutral","pct":65,"note":"brief why"},
-    {"asset":"OIL","dir":"up|down|neutral","pct":85,"note":"brief why"},
-    {"asset":"AUD/USD","dir":"up|down|neutral","pct":55,"note":"brief why"},
-    {"asset":"ASX 200","dir":"up|down|neutral","pct":60,"note":"brief why"},
-    {"asset":"PROPERTY","dir":"up|down|neutral","pct":35,"note":"brief why"}
-  ],
-  "levels":[
-    {"lbl":"CURRENT","val":"$X","note":"where we are","color":"#00D4AA"},
-    {"lbl":"TARGET 1","val":"$X","note":"first level","color":"#C9A84C"},
-    {"lbl":"INTERVENTION","val":"$X","note":"govt/CB acts here","color":"#E87B34"},
-    {"lbl":"SUPPORT","val":"$X","note":"floor on reversal","color":"#3A7FD5"}
-  ],
-  "scenarios":[
-    {"type":"base","lbl":"BASE CASE","prob":"55%","text":"most likely 2-4 week outcome with price targets"},
-    {"type":"bull","lbl":"BULL CASE","prob":"25%","text":"upside triggers and targets"},
-    {"type":"bear","lbl":"BEAR CASE","prob":"20%","text":"downside triggers and what breaks it"}
-  ],
-  "ripples":[
-    {"icon":"⛽","title":"Fuel Costs","desc":"AUS petrol price impact and timeline","imp":"+HIGH","ic":"rgba(232,57,74,0.15)","tc":"#E8394A"},
-    {"icon":"🏗","title":"Construction","desc":"Melbourne trades cost impact","imp":"+MED","ic":"rgba(201,168,76,0.15)","tc":"#C9A84C"},
-    {"icon":"🏦","title":"RBA Response","desc":"rate decision implications","imp":"WATCH","ic":"rgba(58,127,213,0.15)","tc":"#3A7FD5"},
-    {"icon":"🥇","title":"Physical Gold","desc":"specific recommendation on physical metals","imp":"BUY","ic":"rgba(0,212,170,0.12)","tc":"#00D4AA"}
-  ],
-  "timeline":[
-    {"cls":"now","time":"24-72 HOURS","title":"Immediate signal","desc":"what to watch right now"},
-    {"cls":"soon","time":"1-2 WEEKS","title":"Confirmation point","desc":"key event or data that confirms or denies"},
-    {"cls":"soon","time":"1 MONTH","title":"Medium signal","desc":"30-day outlook"},
-    {"cls":"later","time":"3-6 MONTHS","title":"Resolution","desc":"longer term outcome and portfolio positioning"}
-  ]
-}`;
+      const sys = `You are NEXUS INTEL. March 2026: Hormuz crisis, gold $5037, oil $107, AUD weak, markets dumping. Australian Melbourne subcontractor investor.
+Reply ONLY with valid JSON no markdown:
+{"asset":"NAME","sentiment":"BULLISH|BEARISH|VOLATILE|NEUTRAL","analysis":["paragraph 1","paragraph 2","paragraph 3"],"impactRadar":[{"asset":"GOLD","dir":"up","pct":80,"note":"brief"},{"asset":"SILVER","dir":"up","pct":65,"note":"brief"},{"asset":"OIL","dir":"up","pct":85,"note":"brief"},{"asset":"AUD/USD","dir":"down","pct":55,"note":"brief"},{"asset":"ASX 200","dir":"down","pct":60,"note":"brief"},{"asset":"PROPERTY","dir":"neutral","pct":35,"note":"brief"}],"levels":[{"lbl":"CURRENT","val":"$X","note":"brief","color":"#00D4AA"},{"lbl":"TARGET 1","val":"$X","note":"brief","color":"#C9A84C"},{"lbl":"INTERVENTION","val":"$X","note":"brief","color":"#E87B34"},{"lbl":"SUPPORT","val":"$X","note":"brief","color":"#3A7FD5"}],"scenarios":[{"type":"base","lbl":"BASE CASE","prob":"55%","text":"brief"},{"type":"bull","lbl":"BULL CASE","prob":"25%","text":"brief"},{"type":"bear","lbl":"BEAR CASE","prob":"20%","text":"brief"}],"ripples":[{"icon":"⛽","title":"Fuel","desc":"brief","imp":"+HIGH","ic":"rgba(232,57,74,0.15)","tc":"#E8394A"},{"icon":"🏗","title":"Construction","desc":"brief","imp":"+MED","ic":"rgba(201,168,76,0.15)","tc":"#C9A84C"},{"icon":"🏦","title":"RBA","desc":"brief","imp":"WATCH","ic":"rgba(58,127,213,0.15)","tc":"#3A7FD5"},{"icon":"🥇","title":"Gold","desc":"brief","imp":"BUY","ic":"rgba(0,212,170,0.12)","tc":"#00D4AA"}],"timeline":[{"cls":"now","time":"24-72 HRS","title":"signal","desc":"brief"},{"cls":"soon","time":"1-2 WEEKS","title":"signal","desc":"brief"},{"cls":"soon","time":"1 MONTH","title":"signal","desc":"brief"},{"cls":"later","time":"3-6 MONTHS","title":"signal","desc":"brief"}]}`;
 
       try {
         const res = await fetch("/api/claude", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: sys, messages: [{ role: "user", content: q }] })
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 700, system: sys, messages: [{ role: "user", content: q }] })
         });
         const d = await res.json();
         const t = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
