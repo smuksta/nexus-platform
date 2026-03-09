@@ -200,6 +200,7 @@
       align-items: center;
       gap: 18px;
       padding: 8px 32px;
+      min-height: 34px;
       border-top: 1px solid rgba(255, 70, 70, 0.5);
       border-bottom: 1px solid rgba(255, 70, 70, 0.5);
       background: linear-gradient(to right, rgba(255, 40, 40, 0.9), rgba(10, 4, 4, 0.96));
@@ -2273,8 +2274,19 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       if (!el) return;
       const st = riskHighlights.shortTerm;
       const lt = riskHighlights.longTerm;
+      // Always show something, even if we have no model output yet
       if (!st && !lt) {
-        el.textContent = 'No clear priority alerts right now. Click any node to analyse.';
+        el.innerHTML = '';
+        const base = document.createElement('span');
+        base.className = 'risk-item';
+        const tag = document.createElement('span');
+        tag.className = 'risk-tag';
+        tag.textContent = 'ALERT';
+        const text = document.createElement('span');
+        text.textContent = 'Click any node to scan for short-term and long-term risks.';
+        base.appendChild(tag);
+        base.appendChild(text);
+        el.appendChild(base);
         return;
       }
       // Rebuild content safely using text nodes to avoid XSS
@@ -2857,6 +2869,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       autoFitCamera();
       drawAll();
       scanMapRisk();
+    });
+
+    // Ensure the banner is never empty on initial load
+    window.addEventListener('load', () => {
+      try { updateRiskBar(); } catch (e) { console.error('Initial risk bar update failed', e); }
     });
 
     // ═══ MAP INTERACTION ═══
