@@ -198,23 +198,26 @@
     .risk-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 6px 28px;
+      gap: 14px;
+      padding: 10px 32px;
+      border-top: 1px solid var(--border2);
       border-bottom: 1px solid var(--border2);
-      background: linear-gradient(to right, rgba(232, 123, 52, 0.11), transparent);
+      background: radial-gradient(circle at left, rgba(232, 123, 52, 0.28), rgba(3, 6, 10, 0.96));
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text);
     }
 
     .risk-label {
       font-family: var(--orb);
-      font-size: 9px;
-      letter-spacing: 2px;
-      padding: 3px 8px;
+      font-size: 10px;
+      letter-spacing: 3px;
+      padding: 4px 10px;
       border-radius: 999px;
-      background: rgba(232, 123, 52, 0.35);
-      color: #000;
+      background: #E87B34;
+      color: #05080D;
+      box-shadow: 0 0 10px rgba(232, 123, 52, 0.6);
+      flex-shrink: 0;
     }
 
     .risk-marquee {
@@ -226,7 +229,8 @@
 
     .risk-inner {
       display: inline-block;
-      animation: riskScroll 24s linear infinite;
+      padding-left: 4px;
+      animation: riskScroll 30s linear infinite;
     }
 
     .risk-item {
@@ -235,13 +239,13 @@
     }
 
     .risk-item span {
-      opacity: 0.7;
+      opacity: 0.8;
     }
 
     .risk-item span.risk-tag {
       text-transform: uppercase;
       font-size: 9px;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       color: var(--gold2);
       margin-right: 6px;
     }
@@ -356,7 +360,7 @@
 
     .legend-header {
       font-family: var(--orb);
-      font-size: 9px;
+      font-size: 11px;
       color: var(--muted);
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -369,8 +373,12 @@
       gap: 8px;
       margin-bottom: 6px;
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted2);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background 0.15s, color 0.15s, transform 0.15s;
     }
 
     .legend-dot {
@@ -378,6 +386,16 @@
       height: 8px;
       border-radius: 50%;
       flex-shrink: 0;
+    }
+
+    .legend-row:hover {
+      background: rgba(255, 255, 255, 0.03);
+      transform: translateX(1px);
+    }
+
+    .legend-row.active {
+      background: rgba(0, 212, 170, 0.08);
+      color: var(--text);
     }
 
     /* Map controls */
@@ -1853,22 +1871,25 @@
 
     <div id="mapLegend">
       <div class="legend-header">NODE TYPES</div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="all">
+        <div class="legend-dot" style="background:#C9A84C"></div>All
+      </div>
+      <div class="legend-row" data-type="geo">
         <div class="legend-dot" style="background:#E8394A"></div>Geopolitical
       </div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="financial">
         <div class="legend-dot" style="background:#C9A84C"></div>Financial
       </div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="resource">
         <div class="legend-dot" style="background:#00D4AA"></div>Commodity
       </div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="shadow">
         <div class="legend-dot" style="background:#8B5CF6"></div>Shadow Layer
       </div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="policy">
         <div class="legend-dot" style="background:#3A7FD5"></div>Policy / Law
       </div>
-      <div class="legend-row">
+      <div class="legend-row" data-type="aus">
         <div class="legend-dot" style="background:#E87B34"></div>Australia
       </div>
     </div>
@@ -2215,18 +2236,33 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         el.textContent = 'No clear priority alerts right now. Click any node to analyse.';
         return;
       }
-      const parts = [];
+      // Rebuild content safely using text nodes to avoid XSS
+      el.innerHTML = '';
+
+      const makeItem = (nodeId, tag, headline, fallback) => {
+        const item = document.createElement('span');
+        item.className = 'risk-item';
+        item.setAttribute('data-node', nodeId);
+
+        const tagSpan = document.createElement('span');
+        tagSpan.className = 'risk-tag';
+        tagSpan.textContent = tag;
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = headline || fallback;
+
+        item.appendChild(tagSpan);
+        item.appendChild(textSpan);
+        return item;
+      };
+
       if (st && st.nodeId) {
-        parts.push(
-          `<span class="risk-item" data-node="${st.nodeId}"><span class="risk-tag">NOW</span><span>${st.headline || 'Short-term risk'}</span></span>`
-        );
+        el.appendChild(makeItem(st.nodeId, 'NOW', st.headline, 'Short-term risk'));
+        el.appendChild(document.createTextNode('   '));
       }
       if (lt && lt.nodeId) {
-        parts.push(
-          `<span class="risk-item" data-node="${lt.nodeId}"><span class="risk-tag">6-18M</span><span>${lt.headline || 'Long-term risk'}</span></span>`
-        );
+        el.appendChild(makeItem(lt.nodeId, '6-18M', lt.headline, 'Long-term risk'));
       }
-      el.innerHTML = parts.join(' ');
 
       // Delegate clicks from the marquee to open the relevant node
       const wrapper = document.getElementById('riskBarClick');
@@ -2265,6 +2301,37 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           loadAllSignals();
         }
       }
+    }
+
+    // Legend click filtering
+    const legendEl = document.getElementById('mapLegend');
+    if (legendEl) {
+      legendEl.addEventListener('click', e => {
+        const row = e.target.closest('.legend-row');
+        if (!row) return;
+        const t = row.getAttribute('data-type');
+        if (!t) return;
+
+        if (t === 'all') {
+          typeFilter = null;
+        } else {
+          typeFilter = typeFilter === t ? null : t;
+        }
+
+        // Update active state
+        legendEl.querySelectorAll('.legend-row').forEach(r => {
+          const rt = r.getAttribute('data-type');
+          if (!typeFilter) {
+            r.classList.toggle('active', rt === 'all');
+          } else {
+            r.classList.toggle('active', rt === typeFilter);
+          }
+        });
+      });
+
+      // Default "All" active on load
+      const allRow = legendEl.querySelector('.legend-row[data-type="all"]');
+      if (allRow) allRow.classList.add('active');
     }
 
     // ═══ NODE DATA ═══
@@ -2327,7 +2394,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         dyn.forEach(d => {
           if (!d || !d.id || baseNodeIds.has(d.id)) return;
           if (nodes.find(x => x.id === d.id)) return;
-          nodes.push({
+          const newNode = {
             id: d.id,
             x: typeof d.x === 'number' ? d.x : 0,
             y: typeof d.y === 'number' ? d.y : 0,
@@ -2335,7 +2402,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             type: d.type && typeColors[d.type] ? d.type : 'financial',
             size: d.size || 26,
             connections: Array.isArray(d.connections) ? d.connections.slice() : [],
-          });
+          };
+          nodes.push(newNode);
+          // Ensure loaded dynamic nodes participate in animation/drawing
+          anim[newNode.id] = { s: 1 };
         });
       } catch (e) {
         console.warn('Failed to load dynamic nodes from localStorage:', e);
@@ -2351,7 +2421,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         dyn.forEach(d => {
           if (!d || !d.id || baseNodeIds.has(d.id)) return;
           if (nodes.find(x => x.id === d.id)) return;
-          nodes.push({
+          const newNode = {
             id: d.id,
             x: typeof d.x === 'number' ? d.x : 0,
             y: typeof d.y === 'number' ? d.y : 0,
@@ -2359,7 +2429,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             type: d.type && typeColors[d.type] ? d.type : 'financial',
             size: d.size || 26,
             connections: Array.isArray(d.connections) ? d.connections.slice() : [],
-          });
+          };
+          nodes.push(newNode);
+          // Ensure KV-loaded dynamic nodes are visible (have animation state)
+          anim[newNode.id] = { s: 1 };
         });
       } catch (e) {
         console.warn('Failed to load dynamic nodes from server, falling back to local:', e);
@@ -2367,7 +2440,46 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       }
     }
 
+    // Deduplicate nodes by label+type, preferring original seed nodes
+    function pruneDuplicateNodes() {
+      const seen = new Map(); // key -> index
+      const toRemove = new Set();
+      nodes.forEach((n, idx) => {
+        const key = (String(n.label || '').toUpperCase().trim() || n.id) + '|' + (n.type || '');
+        const existingIdx = seen.get(key);
+        if (existingIdx == null) {
+          seen.set(key, idx);
+          return;
+        }
+        const existing = nodes[existingIdx];
+        const isExistingBase = baseNodeIds.has(existing.id);
+        const isCurrentBase = baseNodeIds.has(n.id);
+
+        // Prefer keeping base node; if both base or both dynamic, keep the first
+        let removeIdx;
+        if (isExistingBase && !isCurrentBase) {
+          removeIdx = idx;
+        } else if (!isExistingBase && isCurrentBase) {
+          removeIdx = existingIdx;
+          seen.set(key, idx);
+        } else {
+          removeIdx = idx;
+        }
+        toRemove.add(removeIdx);
+      });
+
+      if (!toRemove.size) return;
+
+      const newNodes = [];
+      nodes.forEach((n, idx) => {
+        if (!toRemove.has(idx)) newNodes.push(n);
+        else if (anim[n.id]) delete anim[n.id];
+      });
+      nodes = newNodes;
+    }
+
     // Build index and normalise connections (graph integrity)
+    pruneDuplicateNodes();
     const nodeIndex = new Map();
     nodes.forEach(n => {
       if (nodeIndex.has(n.id)) {
@@ -2462,7 +2574,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
     let vx = 0, vy = 0, sc = 0.9, tvx = 0, tvy = 0, tsc = 0.9;
     let isDrag = false, lmx = 0, lmy = 0;
-    let selNode = null, hovNode = null, showShadow = true;
+    let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
     let currentPanelNode = null;
 
@@ -2550,9 +2662,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       // Edges
       nodes.forEach(n => {
+        if (typeFilter && n.type !== typeFilter) return;
         n.connections.forEach(cid => {
           const t = nodes.find(x => x.id === cid); if (!t) return;
           if ((n.type === 'shadow' || t.type === 'shadow') && !showShadow) return;
+          if (typeFilter && t.type !== typeFilter) return;
           const an = anim[n.id], at = anim[t.id];
           if (!an || !at || an.s < 0.5 || at.s < 0.5) return;
           const pn = npos(n), pt = npos(t);
@@ -2582,6 +2696,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       // Nodes
       ['aus', 'resource', 'financial', 'policy', 'geo', 'shadow'].forEach(type => {
         nodes.filter(n => n.type === type).forEach(n => {
+          if (typeFilter && n.type !== typeFilter) return;
           if (n.type === 'shadow' && !showShadow) return;
           const a = anim[n.id]; if (!a || a.s <= 0) return;
           const p = npos(n), r = n.size * sc * a.s;
@@ -2629,11 +2744,33 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       requestAnimationFrame(drawAll);
     }
-    // Load shared dynamic nodes, then start the render loop
+    // Auto-fit camera to include all nodes
+    function autoFitCamera() {
+      if (!nodes.length || !W || !H) return;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        maxX = Math.max(maxX, n.x);
+        minY = Math.min(minY, n.y);
+        maxY = Math.max(maxY, n.y);
+      });
+      const spanX = maxX - minX || 1;
+      const spanY = maxY - minY || 1;
+      const margin = 80;
+      const scaleX = (W - margin * 2) / spanX;
+      const scaleY = (H - margin * 2) / spanY;
+      tsc = Math.max(0.35, Math.min(1.6, Math.min(scaleX, scaleY)));
+      tvx = -((minX + maxX) / 2);
+      tvy = -((minY + maxY) / 2);
+    }
+
+    // Load shared dynamic nodes, then settle layout and start the render loop
     loadDynamicNodesFromServer().then(() => {
-      relaxLayout(8, 0.3);
+      relaxLayout(6, 0.25);
+      autoFitCamera();
       drawAll();
     }).catch(() => {
+      autoFitCamera();
       drawAll();
     });
 
@@ -2641,6 +2778,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     function nodeAt(mx, my) {
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
+        if (typeFilter && n.type !== typeFilter) continue;
         if (n.type === 'shadow' && !showShadow) continue;
         const p = npos(n), r = n.size * sc, dx = mx - p.x, dy = my - p.y;
         if (dx * dx + dy * dy < r * r * 1.6) return n;
@@ -2682,7 +2820,18 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     }, { passive: false });
     canvas.addEventListener('touchend', () => isDrag = false);
 
-    function resetMapView() { tvx = 0; tvy = 0; tsc = 0.9; }
+    function resetMapView() {
+      tvx = 0; tvy = 0; tsc = 0.9;
+      // Clear any type filter and set legend back to "All"
+      typeFilter = null;
+      const legend = document.getElementById('mapLegend');
+      if (legend) {
+        legend.querySelectorAll('.legend-row').forEach(r => {
+          const rt = r.getAttribute('data-type');
+          r.classList.toggle('active', rt === 'all');
+        });
+      }
+    }
     function toggleShadow() {
       showShadow = !showShadow;
       const btn = document.getElementById('shadowBtn');
