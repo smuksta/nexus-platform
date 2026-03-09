@@ -1243,6 +1243,55 @@
       margin-top: 2px;
     }
 
+    .sig-overview {
+      padding: 10px 28px 6px;
+      border-bottom: 1px solid var(--border2);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .sig-overview-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      padding: 8px 10px;
+      min-height: 58px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sig-overview-title {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted2);
+      margin-bottom: 2px;
+    }
+
+    .sig-overview-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0, 212, 170, 0.09);
+      color: var(--text);
+      margin: 1px 4px 1px 0;
+      white-space: nowrap;
+    }
+
+    .sig-overview-pill span {
+      margin-right: 4px;
+    }
+
+    .sig-overview-empty {
+      font-size: 9px;
+      color: var(--muted2);
+    }
+
     .signals-refresh {
       background: rgba(0, 212, 170, 0.08);
       border: 1px solid rgba(0, 212, 170, 0.2);
@@ -1829,6 +1878,22 @@
       <div style="display:flex;gap:10px;align-items:center">
         <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="sigLastUpdate">LAST UPDATE: —</div>
         <button class="signals-refresh" id="sigRefreshBtn" onclick="loadAllSignals()">↻ REFRESH ALL</button>
+      </div>
+    </div>
+
+    <!-- Overview buckets -->
+    <div class="sig-overview" id="sigOverview">
+      <div class="sig-overview-card">
+        <div class="sig-overview-title">BEST TO BUY NOW</div>
+        <div class="sig-overview-empty">Run signals to populate live ideas.</div>
+      </div>
+      <div class="sig-overview-card">
+        <div class="sig-overview-title">CORE STAPLES (ON SALE)</div>
+        <div class="sig-overview-empty">Defensive positions when pulled back.</div>
+      </div>
+      <div class="sig-overview-card">
+        <div class="sig-overview-title">DEBASEMENT TRADES</div>
+        <div class="sig-overview-empty">Assets that benefit from currency debasement.</div>
       </div>
     </div>
 
@@ -2505,7 +2570,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     async function fetchAssetSignal(asset) {
       const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
 Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
-{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
+{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio","buckets":{"bestNow":true,"coreStaple":false,"debasement":false}}`;
 
       const res = await fetch(NEXUS_WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -2546,6 +2611,7 @@ Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra
         btn.disabled = false;
         btn.textContent = '↻ REFRESH ALL';
         document.getElementById('sigLastUpdate').textContent = 'CACHED · ' + new Date().toUTCString().slice(17, 22) + ' UTC';
+        renderSigOverview();
         return;
       }
 
@@ -2569,6 +2635,57 @@ Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra
       btn.disabled = false;
       btn.textContent = '↻ REFRESH ALL';
       document.getElementById('sigLastUpdate').textContent = 'LAST UPDATE: ' + new Date().toUTCString().slice(17, 22) + ' UTC';
+      renderSigOverview();
+    }
+
+    function renderSigOverview() {
+      const el = document.getElementById('sigOverview');
+      if (!el) return;
+      const buckets = {
+        bestNow: [],
+        coreStaple: [],
+        debasement: [],
+      };
+      Object.values(sigDataCache).forEach(d => {
+        if (!d || !d.asset) return;
+        const b = d.buckets || {};
+        const entry = {
+          asset: d.asset,
+          score: d.confluenceScore || 0,
+          sig: d.signal || '',
+        };
+        if (b.bestNow) buckets.bestNow.push(entry);
+        if (b.coreStaple) buckets.coreStaple.push(entry);
+        if (b.debasement) buckets.debasement.push(entry);
+      });
+      const sortFn = (a, b) => (b.score || 0) - (a.score || 0);
+      buckets.bestNow.sort(sortFn);
+      buckets.coreStaple.sort(sortFn);
+      buckets.debasement.sort(sortFn);
+
+      const renderBucket = (items, label) => {
+        if (!items.length) {
+          return `<div class="sig-overview-empty">No clear ${label.toLowerCase()} yet.</div>`;
+        }
+        return items.slice(0, 4).map(it => {
+          return `<span class="sig-overview-pill"><span>${it.asset}</span><span style="color:var(--muted2)">${it.score}</span><span style="color:var(--teal);font-size:9px">${it.sig}</span></span>`;
+        }).join('');
+      };
+
+      el.innerHTML = `
+        <div class="sig-overview-card">
+          <div class="sig-overview-title">BEST TO BUY NOW</div>
+          ${renderBucket(buckets.bestNow, 'best to buy now')}
+        </div>
+        <div class="sig-overview-card">
+          <div class="sig-overview-title">CORE STAPLES (ON SALE)</div>
+          ${renderBucket(buckets.coreStaple, 'core staples')}
+        </div>
+        <div class="sig-overview-card">
+          <div class="sig-overview-title">DEBASEMENT TRADES</div>
+          ${renderBucket(buckets.debasement, 'debasement trades')}
+        </div>
+      `;
     }
 
     function updateAssetTab(asset, data) {
