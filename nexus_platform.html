@@ -1242,6 +1242,60 @@ body::before {
 </div>
 
 <script>
+// ═══ SAFE JSON PARSING (MODEL OUTPUT) ═══
+function _stripModelFences(s){
+  return String(s ?? '')
+    .replace(/^\uFEFF/, '')
+    .replace(/```(?:json)?/gi, '')
+    .replace(/```/g, '')
+    .trim();
+}
+
+function _fixTrailingCommas(s){
+  return String(s).replace(/,\s*([}\]])/g, '$1');
+}
+
+function _extractFirstJsonBlock(s){
+  const str = String(s ?? '');
+  const start = str.search(/[\{\[]/);
+  if (start < 0) return null;
+  const open = str[start];
+  const close = open === '{' ? '}' : ']';
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < str.length; i++){
+    const ch = str[i];
+    if (inString){
+      if (escaped){ escaped = false; continue; }
+      if (ch === '\\'){ escaped = true; continue; }
+      if (ch === '"'){ inString = false; }
+      continue;
+    }
+    if (ch === '"'){ inString = true; continue; }
+    if (ch === open) depth++;
+    if (ch === close){
+      depth--;
+      if (depth === 0) return str.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseModelJsonOrThrow(text){
+  const raw = _stripModelFences(text);
+  if (!raw) throw new Error('Empty response');
+  const extracted = _extractFirstJsonBlock(raw);
+  const candidates = extracted && extracted !== raw ? [raw, extracted] : [raw];
+  for (const c of candidates){
+    try { return JSON.parse(c); } catch {}
+    try { return JSON.parse(_fixTrailingCommas(c)); } catch {}
+  }
+  const snippet = raw.slice(0, 180).replace(/\s+/g, ' ');
+  throw new Error('Response was not valid JSON. Starts with: ' + snippet);
+}
+
 // ═══ CLOCK ═══
 setInterval(() => {
   document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17,22) + ' UTC';
@@ -1306,9 +1360,13 @@ const nodes = [
   { id:'aus_const', x:-430, y:230, label:'CONSTRUCTION\nCOSTS', type:'aus', size:26, connections:['aus_fuel','oil','aus_prop'] },
   { id:'super_aus', x:290, y:390, label:'SUPER FUND\nRISK', type:'policy', size:30, connections:['great_taking','aus_rba','wef','apra'] },
   { id:'apra', x:470, y:310, label:'APRA\nPOWERS', type:'shadow', size:24, connections:['super_aus','cash_ban'] },
-  { id:'ai_silver', x:-110, y:-510, label:'AI SILVER\nDEMAND', type:'resource', size:22, connections:['silver','solar'] },
+  { id:'ai_silver', x:-140, y:-535, label:'AI SILVER\nDEMAND', type:'resource', size:22, connections:['silver','solar'] },
   { id:'solar', x:-290, y:-490, label:'SOLAR/EV\nMETALS', type:'resource', size:22, connections:['silver','ai_silver'] },
 ];
+
+// Bring bubbles closer together (layout compactness)
+const LAYOUT_COMPACTNESS = 0.82;
+nodes.forEach(n => { n.x *= LAYOUT_COMPACTNESS; n.y *= LAYOUT_COMPACTNESS; });
 
 // ═══ CANVAS SETUP ═══
 const canvas = document.getElementById('mapCanvas');
@@ -1387,10 +1445,10 @@ function drawAll() {
       else{ ctx.fillStyle=col+'12'; ctx.fill(); ctx.strokeStyle=col+(isHov?'BB':'44'); ctx.lineWidth=isHov?2:0.8; ctx.stroke(); }
       ctx.shadowBlur=0;
       const lines=n.label.split('\n');
-      const fs=Math.max(7,10*sc*a.s);
+      const fs=Math.max(9,12*sc*a.s);
       ctx.fillStyle=isSel?col:(isConn?col+'CC':col+(selNode?'66':'99'));
       ctx.font=`${fs}px 'DM Mono'`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      const lh=Math.max(9,13*sc), th=lines.length*lh;
+      const lh=Math.max(11,15*sc), th=lines.length*lh;
       lines.forEach((l,i)=>ctx.fillText(l,p.x,p.y-th/2+lh*(i+.5)));
       ctx.restore();
     });
@@ -1455,7 +1513,7 @@ function toggleShadow(){
 
 function addCustomNode(){
   const q=prompt('ADD NODE — Enter event or asset:'); if(!q) return;
-  const angle=Math.random()*Math.PI*2, dist=280+Math.random()*180;
+  const angle=Math.random()*Math.PI*2, dist=(230+Math.random()*140);
   const nid='custom_'+Date.now();
   const nn={ id:nid, x:Math.cos(angle)*dist, y:Math.sin(angle)*dist,
     label:q.toUpperCase().slice(0,16), type:'financial', size:26, connections:['gold','usd','aus_rba'] };
@@ -1496,7 +1554,7 @@ Respond ONLY with JSON (no markdown):
     });
     const d=await res.json();
     const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    panelData=JSON.parse(t);
+    panelData=parseModelJsonOrThrow(t);
   } catch(e){ panelData={why:'Analysis unavailable.',shadow:'—',money:'—',act:'—',connectedInsights:{}}; }
 
   document.getElementById('spLoading').style.display='none';
@@ -1619,7 +1677,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     });
     const d=await res.json();
     const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    renderIntel(JSON.parse(t));
+    renderIntel(parseModelJsonOrThrow(t));
   } catch(e){
     clearInterval(loadTimer);
     document.getElementById('intelLoading').style.display='none';
@@ -1808,7 +1866,7 @@ Be specific to ${asset}. Use real approximate March 2026 prices. Confluence fact
   });
   const d = await res.json();
   const t = d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-  return JSON.parse(t);
+  return parseModelJsonOrThrow(t);
 }
 
 async function loadAllSignals() {
