@@ -1987,6 +1987,62 @@
     // Cloudflare Worker endpoint that proxies Finnhub prices
     const PRICE_API_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev/prices';
 
+    // ═══ MODEL JSON PARSING HELPERS ═══
+    function _stripModelFences(s) {
+      return String(s ?? '')
+        .replace(/^\uFEFF/, '')
+        .replace(/```(?:json)?/gi, '')
+        .replace(/```/g, '')
+        .trim();
+    }
+
+    function _fixTrailingCommas(s) {
+      return String(s).replace(/,\s*([}\]])/g, '$1');
+    }
+
+    function _extractFirstJsonBlock(s) {
+      const str = String(s ?? '');
+      const start = str.search(/[\{\[]/);
+      if (start < 0) return null;
+      const open = str[start];
+      const close = open === '{' ? '}' : ']';
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+
+      for (let i = start; i < str.length; i++) {
+        const ch = str[i];
+        if (inString) {
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\') { escaped = true; continue; }
+          if (ch === '"') { inString = false; }
+          continue;
+        }
+        if (ch === '"') { inString = true; continue; }
+        if (ch === open) depth++;
+        if (ch === close) {
+          depth--;
+          if (depth === 0) return str.slice(start, i + 1);
+        }
+      }
+      return null;
+    }
+
+    function parseModelJsonOrThrow(text) {
+      const raw = _stripModelFences(text);
+      if (!raw) throw new Error('Empty response from model');
+      const extracted = _extractFirstJsonBlock(raw);
+      const candidates = extracted && extracted !== raw ? [raw, extracted] : [raw];
+
+      for (const c of candidates) {
+        try { return JSON.parse(c); } catch (e) { /* try cleaned version below */ }
+        try { return JSON.parse(_fixTrailingCommas(c)); } catch (e) { /* continue */ }
+      }
+
+      const snippet = raw.slice(0, 180).replace(/\s+/g, ' ');
+      throw new Error('Response was not valid JSON. Starts with: ' + snippet);
+    }
+
     // ═══ CLOCK ═══
     setInterval(() => {
       document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17, 22) + ' UTC';
@@ -2324,11 +2380,12 @@ Respond ONLY with valid JSON (no markdown, no backticks):
           })
         });
         const d = await res.json();
+        if (!Array.isArray(d.content)) {
+          throw new Error(d.error || 'No content field in model response');
+        }
         const raw = d.content.map(i => i.text || '').join('');
         console.log('RAW RESPONSE:', raw);
-        const t = raw.replace(/```json|```/g, '').trim();
-        const jsonStart = t.indexOf('{'), jsonEnd = t.lastIndexOf('}');
-        panelData = JSON.parse(t.slice(jsonStart, jsonEnd + 1));
+        panelData = parseModelJsonOrThrow(raw);
         integrateNewNodesFromPanel(node, panelData);
       } catch (e) { console.error('PANEL ERROR:', e); panelData = { why: 'Analysis unavailable: ' + e.message, shadow: '—', money: '—', act: '—', connectedInsights: {} }; }
 
@@ -2451,10 +2508,12 @@ Respond ONLY with valid JSON (no markdown, no backticks):
           body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1400, messages: [{ role: "user", content: sys + "\n\nQUERY: " + q }] })
         });
         const d = await res.json();
+        if (!Array.isArray(d.content)) {
+          throw new Error(d.error || 'No content field in model response');
+        }
         const raw = d.content.map(i => i.text || '').join('');
-        const t = raw.replace(/```json|```/g, '').trim();
-        const jsonStart = t.indexOf('{'), jsonEnd = t.lastIndexOf('}');
-        renderIntel(JSON.parse(t.slice(jsonStart, jsonEnd + 1)));
+        const parsed = parseModelJsonOrThrow(raw);
+        renderIntel(parsed);
       } catch (e) {
         console.error('INTEL ERROR:', e);
         clearInterval(loadTimer);
@@ -2610,9 +2669,11 @@ Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra
         })
       });
       const d = await res.json();
-      const raw = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
-      const jsonStart = raw.indexOf('{'), jsonEnd = raw.lastIndexOf('}');
-      return JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+      if (!Array.isArray(d.content)) {
+        throw new Error(d.error || 'No content field in model response');
+      }
+      const raw = d.content.map(i => i.text || '').join('');
+      return parseModelJsonOrThrow(raw);
     }
 
     async function loadAllSignals() {
