@@ -1877,6 +1877,7 @@
       </div>
       <div style="display:flex;gap:10px;align-items:center">
         <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="sigLastUpdate">LAST UPDATE: —</div>
+        <button class="signals-refresh" id="sigScanBtn" onclick="discoverSignals()">SCAN MARKET</button>
         <button class="signals-refresh" id="sigRefreshBtn" onclick="loadAllSignals()">↻ REFRESH ALL</button>
       </div>
     </div>
@@ -1983,19 +1984,47 @@
   <script>
     // ═══ CONFIG ═══
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
+    // Cloudflare Worker endpoint that proxies Finnhub prices
+    const PRICE_API_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev/prices';
 
     // ═══ CLOCK ═══
     setInterval(() => {
       document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17, 22) + ' UTC';
     }, 1000);
 
-    // Simulate small price movements
-    setInterval(() => {
-      const goldEl = document.getElementById('statGold');
-      const v = 5037 + (Math.random() - 0.5) * 40;
-      goldEl.textContent = '$' + v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      goldEl.style.color = Math.random() > 0.5 ? 'var(--teal)' : 'var(--red)';
-    }, 3000);
+    async function refreshLiveStats() {
+      try {
+        const res = await fetch(`${PRICE_API_URL}?symbols=XAUUSD,CL,AUDUSD`);
+        const data = await res.json();
+        const m = data.symbols || {};
+
+        const gold = m.XAUUSD || m.GC || m['GC=F'];
+        const oil = m.CL || m['CL=F'] || m.XTIUSD;
+        const aud = m.AUDUSD || m['FX:AUDUSD'];
+
+        const goldEl = document.getElementById('statGold');
+        const oilEl = document.getElementById('statOil');
+        const audEl = document.getElementById('statAUD');
+
+        if (gold && gold.price && goldEl) {
+          goldEl.textContent = '$' + Number(gold.price).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          goldEl.style.color = (gold.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+        }
+        if (oil && oil.price && oilEl) {
+          oilEl.textContent = '$' + Number(oil.price).toFixed(2);
+          oilEl.style.color = (oil.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+        }
+        if (aud && aud.price && audEl) {
+          audEl.textContent = Number(aud.price).toFixed(4);
+          audEl.style.color = (aud.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+        }
+      } catch (e) {
+        console.error('LIVE STATS ERROR:', e);
+      }
+    }
+
+    refreshLiveStats();
+    setInterval(refreshLiveStats, 60000);
 
     // ═══ MODE SWITCHING ═══
     let currentMode = 'map';
@@ -2550,6 +2579,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
     const SIG_ASSETS = ['GOLD', 'SILVER', 'BTC', 'XRP', 'URNM', 'COPX'];
     const sigDataCache = {};
+    const discoveredBuckets = {};
     let sigActiveAsset = 'GOLD';
     let sigLoadingCount = 0;
 
@@ -2570,7 +2600,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     async function fetchAssetSignal(asset) {
       const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
 Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
-{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio","buckets":{"bestNow":true,"coreStaple":false,"debasement":false}}`;
+{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
 
       const res = await fetch(NEXUS_WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -2619,6 +2649,9 @@ Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra
       const promises = SIG_ASSETS.map(async asset => {
         try {
           const data = await fetchAssetSignal(asset);
+          if (discoveredBuckets[asset]) {
+            data.buckets = { ...(data.buckets || {}), ...discoveredBuckets[asset] };
+          }
           sigDataCache[asset] = data;
           sessionStorage.setItem('nexus_sig_' + asset, JSON.stringify(data));
           updateAssetTab(asset, data);
@@ -2686,6 +2719,76 @@ Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra
           ${renderBucket(buckets.debasement, 'debasement trades')}
         </div>
       `;
+    }
+
+    async function discoverSignals() {
+      const btn = document.getElementById('sigScanBtn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.textContent = 'SCANNING...';
+      try {
+        const prompt = `You are a macro strategist. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
+
+Scan liquid global markets (equities, ETFs, FX, commodities, crypto) and propose a short list of the most relevant tickers for three buckets:
+- BEST TO BUY NOW: high conviction opportunities right now.
+- CORE STAPLES (ON SALE): long-term core holdings currently trading at attractive levels.
+- DEBASEMENT TRADES: assets that directly benefit from currency debasement / inflation.
+
+Respond ONLY with strict JSON, no markdown, no commentary:
+{
+  "candidates":[
+    {"asset":"GDXJ","bucket":"bestNow","note":"why it qualifies"},
+    {"asset":"TLT","bucket":"coreStaple","note":"why it qualifies"},
+    {"asset":"GLD","bucket":"debasement","note":"why it qualifies"}
+  ]
+}`;
+
+        const res = await fetch(NEXUS_WORKER_URL, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001", max_tokens: 800,
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        const d = await res.json();
+        const raw = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+        const jsonStart = raw.indexOf('{'), jsonEnd = raw.lastIndexOf('}');
+        if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON block in discovery response');
+        const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+        const candidates = parsed.candidates || [];
+
+        const tickerEl = document.getElementById('sigTicker');
+        candidates.forEach(c => {
+          const asset = String(c.asset || '').toUpperCase().trim();
+          if (!asset) return;
+          const bucketStr = String(c.bucket || '').toLowerCase();
+          const flags = {
+            bestNow: bucketStr.includes('best'),
+            coreStaple: bucketStr.includes('staple'),
+            debasement: bucketStr.includes('debasement') || bucketStr.includes('inflation'),
+          };
+          discoveredBuckets[asset] = flags;
+
+          if (!SIG_ASSETS.includes(asset)) {
+            SIG_ASSETS.push(asset);
+            if (tickerEl) {
+              tickerEl.insertAdjacentHTML('beforeend', `
+        <div class="sig-asset-tab" id="sigtab-${asset}" onclick="selectSigAsset('${asset}')">
+          <div class="sig-asset-name">${asset}</div>
+          <div class="sig-asset-score" id="sigscore-${asset}" style="color:var(--muted2)">—</div>
+          <div class="sig-asset-signal" id="sigsig-${asset}" style="background:rgba(90,122,148,0.1);color:var(--muted2)">LOADING</div>
+        </div>`);
+            }
+          }
+        });
+
+        await loadAllSignals();
+      } catch (e) {
+        console.error('DISCOVERY ERROR:', e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'SCAN MARKET';
+      }
     }
 
     function updateAssetTab(asset, data) {
