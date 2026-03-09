@@ -1830,6 +1830,7 @@
       <button class="mode-btn active" id="btnMap" onclick="setMode('map')">⬡ MAP</button>
       <button class="mode-btn" id="btnIntel" onclick="setMode('intel')">◈ INTEL</button>
       <button class="mode-btn" id="btnSignals" onclick="setMode('signals')">▲ SIGNALS</button>
+      <button class="mode-btn" id="btnUrgent" onclick="setMode('urgent')">‼ URGENT</button>
     </div>
 
     <div class="header-stats">
@@ -1962,6 +1963,30 @@
         </div>
       </div>
       <div class="intel-results" id="intelResults"></div>
+    </div>
+  </div>
+
+  <!-- ═══ URGENT VIEW ═══ -->
+  <div class="view hidden" id="urgentView">
+    <div class="signals-header">
+      <div>
+        <div class="signals-title">‼ URGENT — DEFENCE FIRST</div>
+        <div class="signals-sub">WHAT HITS YOU HARDEST · HOW TO DEFEND</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="urgentLastScan">LAST SCAN: —</div>
+    </div>
+
+    <div class="sig-overview" id="urgentBody">
+      <div class="sig-overview-card">
+        <div class="sig-overview-title">SHORT‑TERM (0‑3 MONTHS)</div>
+        <div class="sig-overview-empty" id="urgentShortEmpty">Scanning map for near‑term shocks…</div>
+        <div class="sig-overview-text" id="urgentShort" style="display:none"></div>
+      </div>
+      <div class="sig-overview-card">
+        <div class="sig-overview-title">LONG‑TERM (6‑18 MONTHS)</div>
+        <div class="sig-overview-empty" id="urgentLongEmpty">Scanning map for slow‑burn structural risks…</div>
+        <div class="sig-overview-text" id="urgentLong" style="display:none"></div>
+      </div>
     </div>
   </div>
 
@@ -2211,7 +2236,7 @@
           .slice(0, 80)
           .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace('\n', ' ')} [${n.type}]`)
           .join(', ');
-        const prompt = `You are NEXUS, an early-warning system for an Australian subcontractor/investor in Melbourne.
+        const prompt = `You are NEXUS, an early-warning system for an Australian subcontractor/investor in Melbourne. Use clear, simple language that a non‑financial person can understand. Avoid jargon and complex terms; explain things like you would to a smart friend at the pub.
 
 Here is the current map of key nodes (id:label[type]):
 ${summary}
@@ -2317,6 +2342,49 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         el.appendChild(makeItem(lt.nodeId, '6-18M', lt.headline, 'Long-term risk'));
       }
 
+      // Also refresh the URGENT view if it exists
+      const shortBox = document.getElementById('urgentShort');
+      const shortEmpty = document.getElementById('urgentShortEmpty');
+      const longBox = document.getElementById('urgentLong');
+      const longEmpty = document.getElementById('urgentLongEmpty');
+      const lastScan = document.getElementById('urgentLastScan');
+      const nowStr = new Date().toUTCString().slice(5, 22);
+      if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
+      if (shortBox && shortEmpty) {
+        if (st) {
+          shortEmpty.style.display = 'none';
+          shortBox.style.display = 'block';
+          const h = st.headline || 'Short-term risk';
+          const why = st.reason || '';
+          const defend = st.defend || '';
+          shortBox.innerHTML = `
+            <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
+            <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+            <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
+          `;
+        } else {
+          shortBox.style.display = 'none';
+          shortEmpty.style.display = 'block';
+        }
+      }
+      if (longBox && longEmpty) {
+        if (lt) {
+          longEmpty.style.display = 'none';
+          longBox.style.display = 'block';
+          const h = lt.headline || 'Long-term risk';
+          const why = lt.reason || '';
+          const defend = lt.defend || '';
+          longBox.innerHTML = `
+            <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
+            <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+            <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
+          `;
+        } else {
+          longBox.style.display = 'none';
+          longEmpty.style.display = 'block';
+        }
+      }
+
       // Delegate clicks from the marquee to open the relevant node
       const wrapper = document.getElementById('riskBarClick');
       if (wrapper && !wrapper._riskBound) {
@@ -2345,11 +2413,13 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       document.getElementById('mapView').classList.toggle('hidden', mode !== 'map');
       document.getElementById('intelView').classList.toggle('hidden', mode !== 'intel');
       document.getElementById('signalsView').classList.toggle('hidden', mode !== 'signals');
+      document.getElementById('urgentView').classList.toggle('hidden', mode !== 'urgent');
       document.getElementById('btnMap').classList.toggle('active', mode === 'map');
       document.getElementById('btnIntel').classList.toggle('active', mode === 'intel');
       document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
+      document.getElementById('btnUrgent').classList.toggle('active', mode === 'urgent');
       if (mode !== 'map') closePanel();
-      if (mode === 'map' && !riskHighlights.shortTerm && !riskHighlights.longTerm) {
+      if ((mode === 'map' || mode === 'urgent') && !riskHighlights.shortTerm && !riskHighlights.longTerm) {
         scanMapRisk();
       }
       if (mode === 'signals' && !sigDataCache['GOLD']) {
