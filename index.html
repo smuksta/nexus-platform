@@ -2176,6 +2176,34 @@
       });
     });
 
+    // Lightweight layout relaxation so bubbles don't sit on top of each other
+    function relaxLayout(iterations = 8, strength = 0.28) {
+      for (let k = 0; k < iterations; k++) {
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const min = (a.size + b.size) * 0.95;
+            if (dist < min) {
+              const overlap = (min - dist) * strength;
+              const ux = dx / dist;
+              const uy = dy / dist;
+              a.x -= ux * overlap * 0.5;
+              a.y -= uy * overlap * 0.5;
+              b.x += ux * overlap * 0.5;
+              b.y += uy * overlap * 0.5;
+            }
+          }
+        }
+      }
+    }
+
+    // One-off relaxation to settle the initial layout
+    relaxLayout(12, 0.35);
+
     // ═══ CANVAS SETUP ═══
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
@@ -2210,15 +2238,38 @@
     function integrateNewNodesFromPanel(sourceNode, panel) {
       if (!panel || !Array.isArray(panel.newNodes)) return;
       const baseAngle = Math.random() * Math.PI * 2;
-      const radius = 220;
+      const baseRadius = 240;
+      const minDist = 120;
+
       panel.newNodes.slice(0, 3).forEach((nn, idx) => {
         const label = (nn.label || nn.topic || '').trim();
         if (!label) return;
         const id = (typeof nn.id === 'string' && nn.id) || slugIdFromLabel(label);
         if (nodes.find(x => x.id === id)) return;
-        const angle = baseAngle + (idx - 1) * 0.6;
-        const x = sourceNode.x + Math.cos(angle) * radius;
-        const y = sourceNode.y + Math.sin(angle) * radius;
+
+        let angle = baseAngle + (idx - 1) * 0.9;
+        let radius = baseRadius;
+        let attempt = 0;
+
+        // Try a few positions around the source node until we find one
+        // that is not overlapping existing bubbles.
+        let x, y;
+        while (attempt < 20) {
+          x = sourceNode.x + Math.cos(angle) * radius;
+          y = sourceNode.y + Math.sin(angle) * radius;
+          const tooClose = nodes.some(n => {
+            const dx = n.x - x;
+            const dy = n.y - y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            const rSum = (n.size || 28) + (nn.size || sourceNode.size || 28);
+            return d < Math.max(minDist, rSum * 0.9);
+          });
+          if (!tooClose) break;
+          angle += Math.PI / 6;
+          radius += 22;
+          attempt++;
+        }
+
         const type = (nn.type && typeColors[nn.type]) ? nn.type : sourceNode.type;
         const size = Math.max(22, Math.min(34, nn.size || sourceNode.size * 0.85));
         const newNode = {
@@ -2243,6 +2294,9 @@
       ctx.clearRect(0, 0, W, H);
       vx += (tvx - vx) * 0.1; vy += (tvy - vy) * 0.1; sc += (tsc - sc) * 0.1;
       Object.values(anim).forEach(a => { if (a.s < 1) a.s = Math.min(1, a.s + 0.04); });
+
+      // Gentle continuous relaxation so nodes softly push apart over time
+      relaxLayout(1, 0.18);
 
       // Edges
       nodes.forEach(n => {
