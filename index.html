@@ -1897,8 +1897,6 @@
     <div id="mapControls">
       <button class="ctrl-btn" onclick="resetMapView()">RESET VIEW</button>
       <div class="ctrl-sep"></div>
-      <button class="ctrl-btn" onclick="resetAllNodes()">RESET NODES</button>
-      <div class="ctrl-sep"></div>
       <button class="ctrl-btn" id="shadowBtn" onclick="toggleShadow()">SHADOW LAYER: ON</button>
       <div class="ctrl-sep"></div>
       <button class="ctrl-btn" onclick="addCustomNode()">+ NODE</button>
@@ -2876,26 +2874,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       }
     }
 
-    // Remove all dynamic (non-base) nodes and persist the clean base map
-    function resetAllNodes() {
-      if (!confirm('This will remove all custom/AI-added nodes from the shared map for everyone. Continue?')) {
-        return;
-      }
-      // Keep only original seed nodes
-      nodes = nodes.filter(n => baseNodeIds.has(n.id));
-      // Rebuild animation state
-      Object.keys(anim).forEach(id => { if (!baseNodeIds.has(id)) delete anim[id]; });
-      // Clear any local fallback storage
-      if (typeof window !== 'undefined' && window.localStorage) {
-        try {
-          window.localStorage.removeItem('nexus_dynamic_nodes_v1');
-        } catch (e) {
-          console.warn('Failed to clear local dynamic nodes:', e);
-        }
-      }
-      // Persist empty dynamic node set to KV
-      saveDynamicNodes();
-    }
     function toggleShadow() {
       showShadow = !showShadow;
       const btn = document.getElementById('shadowBtn');
