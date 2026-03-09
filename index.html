@@ -1501,7 +1501,7 @@ Respond ONLY with JSON (no markdown):
     const d=await res.json();
     const t=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     panelData=JSON.parse(t);
-  } catch(e){ panelData={why:'Analysis unavailable.',shadow:'—',money:'—',act:'—',connectedInsights:{}}; }
+  } catch(e){ console.error('PANEL ERROR:', e); panelData={why:'Analysis unavailable: '+e.message,shadow:'—',money:'—',act:'—',connectedInsights:{}}; }
 
   document.getElementById('spLoading').style.display='none';
   document.getElementById('spContent').style.display='block';
