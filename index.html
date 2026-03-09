@@ -2350,6 +2350,38 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const lastScan = document.getElementById('urgentLastScan');
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
+      // Optionally create/update an "URGENT HUB" node on the map that links to the current high‑risk bubbles
+      const urgentIds = [];
+      if (st && st.nodeId) urgentIds.push(st.nodeId);
+      if (lt && lt.nodeId && lt.nodeId !== st?.nodeId) urgentIds.push(lt.nodeId);
+      if (urgentIds.length) {
+        let hub = nodes.find(n => n.id === 'urgent_hub');
+        if (!hub) {
+          hub = {
+            id: 'urgent_hub',
+            x: 0,
+            y: 0,
+            label: 'URGENT\nHUB',
+            fullLabel: 'URGENT HUB — highest risk issues to watch now',
+            type: 'policy',
+            size: 30,
+            connections: []
+          };
+          nodes.push(hub);
+          anim[hub.id] = { s: 1 };
+        }
+        hub.connections = Array.from(new Set([...(hub.connections || []), ...urgentIds]));
+        urgentIds.forEach(id => {
+          const n = nodes.find(x => x.id === id);
+          if (n) {
+            if (!Array.isArray(n.connections)) n.connections = [];
+            if (!n.connections.includes(hub.id)) n.connections.push(hub.id);
+          }
+        });
+        // Persist hub + links as part of dynamic node set
+        saveDynamicNodes();
+      }
+
       if (shortBox && shortEmpty) {
         if (st) {
           shortEmpty.style.display = 'none';
