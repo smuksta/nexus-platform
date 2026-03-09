@@ -1485,7 +1485,7 @@ async function openPanel(node){
     const res=await fetch(NEXUS_WORKER_URL,{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-haiku-4-5-20251001", max_tokens:700,
+        model:"claude-haiku-4-5-20251001", max_tokens:1200,
         messages:[{role:"user",content:`NEXUS intelligence system. Analyse node: "${node.label.replace('\n',' ')}" in context of March 2026: US-Israel strikes on Iran, Strait of Hormuz crisis, gold $5037, oil $107, markets dumping, financial reset concerns. Australian subcontractor investor in Melbourne.
 
 Respond ONLY with JSON (no markdown):
