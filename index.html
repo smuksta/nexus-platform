@@ -1478,7 +1478,7 @@ async function openPanel(node){
   spTab('why',false);
 
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch("/api/claude",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         model:"claude-sonnet-4-20250514", max_tokens:1000,
@@ -1613,7 +1613,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 }`;
 
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch("/api/claude",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:q}]})
     });
@@ -1799,7 +1799,7 @@ Analyse ${asset} and return ONLY valid JSON (no markdown):
 
 Be specific to ${asset}. Use real approximate March 2026 prices. Confluence factors should be ${asset}-specific.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages",{
+  const res = await fetch("/api/claude",{
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       model:"claude-sonnet-4-20250514", max_tokens:1000,
