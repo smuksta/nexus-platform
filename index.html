@@ -2327,6 +2327,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         });
         const d = await res.json();
         const t = d.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim();
+        console.log('INTEL RESPONSE:', t.slice(0, 200));
         renderIntel(JSON.parse(t));
       } catch (e) {
         clearInterval(loadTimer);
