@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #03060A;
+  --bg2: #060C12;
+  --surface: #0C1825;
+  --surface2: #121F2E;
+  --border: #132030;
+  --border2: #1A2D42;
+  --gold: #C9A84C;
+  --gold2: #F5D78E;
+  --teal: #00D4AA;
+  --red: #E8394A;
+  --orange: #E87B34;
+  --blue: #3A7FD5;
+  --purple: #8B5CF6;
+  --text: #E2EEF7;
+  --muted: #3D5A72;
+  --muted2: #6E90A8;
+  --orb: 'Orbitron', monospace;
+  --mono: 'DM Mono', monospace;
+  --body: 'Inter', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+}
+
+/* ═══ NOISE TEXTURE OVERLAY ═══ */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  opacity:0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events:none;
+  z-index:1000;
+}
+
+/* ═══ HEADER ═══ */
+#header {
+  position:fixed;
+  top:0; left:0; right:0;
+  height:56px;
+  background: rgba(3,6,10,0.96);
+  border-bottom: 1px solid var(--border2);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 24px;
+  z-index:500;
+  backdrop-filter: blur(20px);
+}
+
+.header-logo {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo-mark {
+  width:32px; height:32px;
+  border: 1.5px solid var(--gold);
+  transform: rotate(45deg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.logo-mark-inner {
+  width:8px; height:8px;
+  background: var(--gold);
+  transform: rotate(0deg);
+}
+
+.logo-text {
+  font-family: var(--orb);
+  font-size:18px;
+  font-weight:700;
+  color: var(--gold);
+  letter-spacing:6px;
+}
+
+.logo-sub {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  letter-spacing:2px;
+  margin-top:2px;
+}
+
+/* Mode switcher */
+.mode-switch {
+  display:flex;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius:3px;
+  padding:3px;
+  gap:3px;
+}
+
+.mode-btn {
+  padding:7px 20px;
+  background:none;
+  border:none;
+  color: var(--muted2);
+  font-family: var(--orb);
+  font-size:10px;
+  letter-spacing:2px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all 0.25s;
+  text-transform:uppercase;
+}
+
+.mode-btn.active {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.mode-btn:hover:not(.active) { color: var(--gold); }
+
+/* Header right */
+.header-stats {
+  display:flex;
+  align-items:center;
+  gap:24px;
+}
+
+.stat-item {
+  text-align:right;
+}
+
+.stat-label {
+  font-family: var(--mono);
+  font-size:9px;
+  color: var(--muted);
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size:13px;
+  color: var(--gold2);
+  font-weight:500;
+}
+
+.live-indicator {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+}
+
+.live-dot {
+  width:7px; height:7px;
+  border-radius:50%;
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+  animation: livepulse 1.5s infinite;
+}
+
+@keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+
+/* ═══ VIEWS ═══ */
+.view { position:fixed; top:56px; left:0; right:0; bottom:0; transition: opacity 0.3s, transform 0.3s; }
+.view.hidden { opacity:0; pointer-events:none; transform:scale(0.98); }
+
+/* ═══ MAP VIEW ═══ */
+#mapView { z-index:10; }
+
+#mapCanvas {
+  width:100%; height:100%;
+  cursor:grab;
+  display:block;
+}
+#mapCanvas:active { cursor:grabbing; }
+
+/* Map tooltip */
+#mapTooltip {
+  position:fixed;
+  background: rgba(6,12,18,0.97);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--gold);
+  padding:10px 14px;
+  border-radius:2px;
+  font-family: var(--mono);
+  font-size:11px;
+  pointer-events:none;
+  z-index:600;
+  display:none;
+  max-width:220px;
+  backdrop-filter:blur(10px);
+}
+
+.tooltip-name { color: var(--gold2); font-weight:500; margin-bottom:3px; }
+.tooltip-type { color: var(--muted2); font-size:10px; letter-spacing:1px; }
+.tooltip-hint { color: var(--teal); font-size:10px; margin-top:6px; }
+
+/* Map legend */
+#mapLegend {
+  position:fixed;
+  bottom:80px;
+  left:20px;
+  background: rgba(6,12,18,0.9);
+  border: 1px solid var(--border2);
+  padding:14px 18px;
+  border-radius:3px;
+  z-index:300;
+  backdrop-filter:blur(10px);
+}
+
+.legend-header {
+  font-family: var(--orb);
+  font-size:9px;
+  color: var(--muted);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+.legend-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+}
+
+.legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* Map controls */
+#mapControls {
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background: rgba(6,12,18,0.95);
+  border: 1px solid var(--border2);
+  border-radius:3px;
+  padding:10px 18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  z-index:300;
+  backdrop-filter:blur(10px);
+}
+
+.ctrl-btn {
+  background:none;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  padding:6px 14px;
+  font-family: var(--mono);
+  font-size:10px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all 0.2s;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.ctrl-btn:hover { border-color: var(--gold); color: var(--gold); }
+.ctrl-btn.toggled { border-color: var(--purple); color: var(--purple); }
+.ctrl-sep { width:1px; height:18px; background: var(--border2); }
+.ctrl-hint { font-family: var(--mono); font-size:9px; color: var(--muted); letter-spacing:1px; }
+
+/* ═══ INTEL VIEW ═══ */
+#intelView {
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  background: var(--bg2);
+}
+
+.intel-header {
+  padding:20px 28px;
+  border-bottom: 1px solid var(--border2);
+  display:flex;
+  align-items:flex-start;
+  gap:20px;
+  flex-shrink:0;
+}
+
+.intel-context {
+  flex:1;
+}
+
+.intel-breadcrumb {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.breadcrumb-sep { color: var(--muted); }
+
+.intel-query-display {
+  font-family: var(--body);
+  font-size:20px;
+  font-weight:600;
+  color: var(--text);
+  line-height:1.3;
+}
+
+.intel-query-area {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  width:360px;
+  flex-shrink:0;
+}
+
+.intel-input {
+  flex:1;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--body);
+  font-size:13px;
+  padding:10px 14px;
+  border-radius:2px;
+  outline:none;
+  resize:none;
+  height:52px;
+  transition: border-color 0.2s;
+}
+
+.intel-input:focus { border-color: var(--gold); }
+.intel-input::placeholder { color: var(--muted); }
+
+.intel-go {
+  background: var(--gold);
+  color: var(--bg);
+  border:none;
+  padding:0 18px;
+  height:52px;
+  font-family: var(--orb);
+  font-size:10px;
+  letter-spacing:2px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all 0.2s;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+.intel-go:hover { background: var(--gold2); }
+.intel-go:disabled { background: var(--muted); cursor:not-allowed; }
+
+/* Quick chips */
+.intel-chips {
+  padding:12px 28px;
+  border-bottom: 1px solid var(--border);
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  flex-shrink:0;
+}
+
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  padding:5px 12px;
+  font-family: var(--mono);
+  font-size:10px;
+  border-radius:2px;
+  cursor:pointer;
+  transition:all 0.15s;
+  letter-spacing:0.5px;
+}
+
+.chip:hover { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.05); }
+
+/* Intel body */
+.intel-body {
+  flex:1;
+  overflow-y:auto;
+  padding:24px 28px;
+}
+
+.intel-body::-webkit-scrollbar { width:4px; }
+.intel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius:2px; }
+
+/* Intel empty */
+.intel-empty {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  gap:16px;
+  color: var(--muted);
+}
+
+.empty-hex {
+  font-size:60px;
+  opacity:0.15;
+  font-family: var(--orb);
+}
+
+.empty-title {
+  font-family: var(--orb);
+  font-size:16px;
+  color: var(--muted2);
+  letter-spacing:4px;
+}
+
+.empty-desc {
+  font-family: var(--mono);
+  font-size:11px;
+  text-align:center;
+  max-width:400px;
+  line-height:1.7;
+  color: var(--muted);
+}
+
+/* Intel loading */
+.intel-loading {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  gap:16px;
+}
+
+.intel-spinner {
+  width:40px; height:40px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--gold);
+  border-radius:50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to{transform:rotate(360deg)} }
+
+.intel-loading-text {
+  font-family: var(--mono);
+  font-size:11px;
+  color: var(--muted2);
+  letter-spacing:2px;
+}
+
+.intel-loading-bar {
+  width:200px; height:2px;
+  background: var(--border2);
+  border-radius:1px;
+  overflow:hidden;
+}
+
+.intel-loading-fill {
+  height:100%;
+  background: linear-gradient(90deg, var(--gold), var(--teal));
+  border-radius:1px;
+  animation: barload 1.5s ease-in-out infinite;
+}
+
+@keyframes barload { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+
+/* Intel results grid */
+.intel-results { display:none; }
+.intel-results.show { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* Cards */
+.icard {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius:3px;
+  overflow:hidden;
+}
+
+.icard.full { grid-column: 1/-1; }
+
+.icard-head {
+  padding:12px 16px;
+  border-bottom: 1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.icard-title {
+  font-family: var(--orb);
+  font-size:9px;
+  letter-spacing:2px;
+  color: var(--muted2);
+  text-transform:uppercase;
+}
+
+.icard-badge {
+  font-family: var(--mono);
+  font-size:10px;
+  padding:2px 8px;
+  border-radius:2px;
+}
+
+.badge-gold { background:rgba(201,168,76,0.15); color:var(--gold2); }
+.badge-teal { background:rgba(0,212,170,0.12); color:var(--teal); }
+.badge-red { background:rgba(232,57,74,0.12); color:var(--red); }
+.badge-blue { background:rgba(58,127,213,0.12); color:var(--blue); }
+
+.icard-body { padding:16px; }
+
+/* Analysis text */
+.analysis-para {
+  font-size:13px;
+  line-height:1.8;
+  color: #B8CDD8;
+  margin-bottom:10px;
+}
+
+/* Impact bars */
+.impact-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+
+.impact-lbl {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  width:72px;
+  flex-shrink:0;
+  text-align:right;
+}
+
+.impact-track {
+  flex:1;
+  height:4px;
+  background: var(--border2);
+  border-radius:2px;
+  overflow:hidden;
+}
+
+.impact-fill {
+  height:100%;
+  border-radius:2px;
+  transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+.impact-val {
+  font-family: var(--mono);
+  font-size:10px;
+  width:36px;
+  flex-shrink:0;
+}
+
+/* Levels */
+.levels-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+.level-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding:12px;
+  border-radius:2px;
+}
+
+.level-lbl {
+  font-family: var(--orb);
+  font-size:8px;
+  letter-spacing:2px;
+  color: var(--muted);
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.level-val {
+  font-family: var(--mono);
+  font-size:20px;
+  font-weight:500;
+  line-height:1;
+}
+
+.level-note {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  margin-top:4px;
+}
+
+/* Scenarios */
+.scenario-block {
+  border-left: 2px solid var(--border2);
+  padding:12px 14px;
+  margin-bottom:10px;
+  border-radius:0 3px 3px 0;
+  background: var(--surface2);
+}
+
+.scenario-block.bull { border-left-color: var(--teal); }
+.scenario-block.base { border-left-color: var(--gold); }
+.scenario-block.bear { border-left-color: var(--red); }
+
+.scenario-lbl {
+  font-family: var(--orb);
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.bull .scenario-lbl { color: var(--teal); }
+.base .scenario-lbl { color: var(--gold); }
+.bear .scenario-lbl { color: var(--red); }
+
+.scenario-text { font-size:12px; line-height:1.7; color: #A8BEC8; }
+
+/* Ripples */
+.ripple-row {
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ripple-row:last-child { border:none; }
+
+.ripple-icon {
+  width:34px; height:34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+  border-radius:3px;
+  flex-shrink:0;
+  background: var(--surface2);
+}
+
+.ripple-content { flex:1; }
+.ripple-title { font-size:13px; font-weight:600; margin-bottom:3px; color: var(--text); }
+.ripple-desc { font-family: var(--mono); font-size:11px; color: var(--muted2); line-height:1.5; }
+
+.ripple-badge {
+  font-family: var(--mono);
+  font-size:10px;
+  padding:3px 8px;
+  border-radius:2px;
+  align-self:center;
+  flex-shrink:0;
+}
+
+/* Timeline */
+.tl { position:relative; padding-left:30px; }
+.tl::before {
+  content:'';
+  position:absolute;
+  left:10px; top:0; bottom:0;
+  width:1px;
+  background: var(--border2);
+}
+
+.tl-item { position:relative; margin-bottom:18px; }
+
+.tl-dot {
+  position:absolute;
+  left:-24px;
+  top:4px;
+  width:14px; height:14px;
+  border-radius:50%;
+  border: 2px solid var(--border2);
+  background: var(--surface2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.tl-dot.now { border-color: var(--teal); box-shadow: 0 0 8px rgba(0,212,170,0.4); }
+.tl-dot.soon { border-color: var(--gold); }
+.tl-dot.later { border-color: var(--red); }
+
+.tl-time {
+  font-family: var(--orb);
+  font-size:9px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.now .tl-time { color: var(--teal); }
+.soon .tl-time { color: var(--gold); }
+.later .tl-time { color: var(--red); }
+
+.tl-title { font-size:13px; font-weight:600; color: var(--text); margin-bottom:3px; }
+.tl-desc { font-family: var(--mono); font-size:11px; color: var(--muted2); line-height:1.6; }
+
+/* Map → Intel bridge banner */
+.bridge-banner {
+  display:none;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius:3px;
+  padding:12px 16px;
+  margin-bottom:16px;
+  font-family: var(--mono);
+  font-size:11px;
+  color: var(--gold2);
+  align-items:center;
+  gap:10px;
+  grid-column:1/-1;
+}
+
+.bridge-banner.show { display:flex; }
+
+/* ═══ SLIDE PANEL (map detail) ═══ */
+#slidePanel {
+  position:fixed;
+  top:56px; right:0;
+  width:360px;
+  height:calc(100vh - 56px);
+  background: rgba(3,6,10,0.98);
+  border-left: 1px solid var(--border2);
+  transform:translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index:400;
+  display:flex;
+  flex-direction:column;
+  backdrop-filter:blur(20px);
+}
+
+#slidePanel.open { transform:translateX(0); }
+
+.sp-head {
+  padding:16px 20px;
+  border-bottom: 1px solid var(--border2);
+  flex-shrink:0;
+}
+
+.sp-close {
+  float:right;
+  background:none;
+  border:none;
+  color: var(--muted2);
+  cursor:pointer;
+  font-size:16px;
+  font-family: var(--mono);
+  transition:color 0.2s;
+  line-height:1;
+}
+
+.sp-close:hover { color: var(--text); }
+
+.sp-cat {
+  font-family: var(--orb);
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.sp-title {
+  font-size:18px;
+  font-weight:600;
+  line-height:1.2;
+  margin-bottom:4px;
+}
+
+.sp-meta {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+}
+
+/* Deep dive button */
+.deep-dive-btn {
+  margin:14px 20px 0;
+  width:calc(100% - 40px);
+  background: var(--gold);
+  color: var(--bg);
+  border:none;
+  padding:10px;
+  font-family: var(--orb);
+  font-size:10px;
+  letter-spacing:2px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:all 0.2s;
+  flex-shrink:0;
+  text-transform:uppercase;
+}
+
+.deep-dive-btn:hover { background: var(--gold2); }
+
+.sp-tabs {
+  display:flex;
+  border-bottom: 1px solid var(--border2);
+  flex-shrink:0;
+}
+
+.sp-tab {
+  flex:1;
+  padding:9px 4px;
+  background:none;
+  border:none;
+  color: var(--muted2);
+  font-family: var(--orb);
+  font-size:8px;
+  letter-spacing:1px;
+  cursor:pointer;
+  transition:all 0.2s;
+  border-bottom: 2px solid transparent;
+  text-transform:uppercase;
+}
+
+.sp-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.sp-tab:hover:not(.active) { color:var(--text); }
+
+.sp-body {
+  flex:1;
+  overflow-y:auto;
+  padding:16px 20px;
+}
+
+.sp-body::-webkit-scrollbar { width:3px; }
+.sp-body::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.sp-block {
+  background: var(--surface2);
+  border-left: 2px solid var(--border2);
+  padding:12px 14px;
+  margin-bottom:12px;
+  border-radius:0 3px 3px 0;
+  font-size:12px;
+  line-height:1.7;
+  color: #A8BEC8;
+}
+
+.sp-block-label {
+  font-family: var(--orb);
+  font-size:8px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.sp-loading {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:200px;
+  gap:12px;
+}
+
+.sp-spinner {
+  width:28px; height:28px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--gold);
+  border-radius:50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.sp-loading-text {
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  letter-spacing:1px;
+}
+
+.conn-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+
+.conn-chip {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  padding:5px 10px;
+  border-radius:2px;
+  cursor:pointer;
+  font-family: var(--mono);
+  font-size:10px;
+  color: var(--muted2);
+  transition:all 0.15s;
+}
+
+.conn-chip:hover { border-color:var(--gold); color:var(--gold); }
+.conn-chip-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+
+/* Fade in animation */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.fade-up { animation: fadeUp 0.4s ease forwards; opacity:0; }
+.fade-up:nth-child(1){animation-delay:0.05s}
+.fade-up:nth-child(2){animation-delay:0.1s}
+.fade-up:nth-child(3){animation-delay:0.15s}
+.fade-up:nth-child(4){animation-delay:0.2s}
+.fade-up:nth-child(5){animation-delay:0.25s}
+.fade-up:nth-child(6){animation-delay:0.3s}
+
+/* ═══ SIGNALS MODE ═══ */
+#signalsView {
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  background: var(--bg2);
+  overflow:hidden;
+}
+
+.signals-header {
+  padding:16px 28px;
+  border-bottom: 1px solid var(--border2);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+}
+
+.signals-title { font-family:var(--orb); font-size:13px; letter-spacing:4px; color:var(--teal); }
+.signals-sub { font-family:var(--mono); font-size:10px; color:var(--muted2); letter-spacing:1px; margin-top:2px; }
+
+.signals-refresh {
+  background:rgba(0,212,170,0.08); border:1px solid rgba(0,212,170,0.2);
+  color:var(--teal); font-family:var(--orb); font-size:9px; letter-spacing:2px;
+  padding:7px 18px; cursor:pointer; border-radius:2px; transition:all 0.2s;
+}
+.signals-refresh:hover { background:rgba(0,212,170,0.15); }
+.signals-refresh:disabled { opacity:0.4; cursor:not-allowed; }
+
+.signals-ticker {
+  display:flex; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto;
+}
+.signals-ticker::-webkit-scrollbar { display:none; }
+
+.sig-asset-tab {
+  flex-shrink:0; padding:10px 20px; cursor:pointer; border-bottom:2px solid transparent;
+  transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:3px;
+  min-width:100px;
+}
+.sig-asset-tab:hover { background:rgba(255,255,255,0.02); }
+.sig-asset-tab.active { border-bottom-color:var(--gold); }
+.sig-asset-name { font-family:var(--orb); font-size:10px; letter-spacing:2px; color:var(--muted2); }
+.sig-asset-tab.active .sig-asset-name { color:var(--gold2); }
+.sig-asset-score { font-family:var(--mono); font-size:18px; font-weight:500; line-height:1; }
+.sig-asset-signal { font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:1px; }
+
+.signals-body {
+  flex:1; overflow-y:auto; display:grid; grid-template-columns:340px 1fr; gap:0;
+}
+
+.sig-left {
+  border-right:1px solid var(--border2); overflow-y:auto; padding:20px;
+  display:flex; flex-direction:column; gap:14px;
+}
+.sig-left::-webkit-scrollbar { width:3px; }
+.sig-left::-webkit-scrollbar-thumb { background:var(--border2); }
+
+.sig-dial-wrap { display:flex; flex-direction:column; align-items:center; padding:20px 0 10px; }
+.sig-dial-outer {
+  width:140px; height:140px; border-radius:50%; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.sig-dial-number { font-family:var(--orb); font-size:42px; font-weight:900; line-height:1; position:relative; z-index:1; }
+.sig-dial-label { font-family:var(--orb); font-size:9px; letter-spacing:3px; color:var(--muted2); margin-top:10px; }
+.sig-signal-badge { font-family:var(--orb); font-size:11px; letter-spacing:3px; padding:6px 16px; border-radius:2px; margin-top:8px; }
+
+.sig-factors { display:flex; flex-direction:column; gap:8px; }
+.sig-factor-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+.sig-factor-row { display:flex; align-items:center; gap:8px; }
+.sig-factor-name { font-family:var(--mono); font-size:10px; color:var(--muted2); width:90px; flex-shrink:0; }
+.sig-factor-track { flex:1; height:5px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.sig-factor-fill { height:100%; border-radius:2px; transition:width 1s cubic-bezier(0.4,0,0.2,1); }
+.sig-factor-val { font-family:var(--mono); font-size:10px; width:28px; text-align:right; flex-shrink:0; }
+
+.sig-right { overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
+.sig-right::-webkit-scrollbar { width:3px; }
+.sig-right::-webkit-scrollbar-thumb { background:var(--border2); }
+
+.sig-zones { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.sig-zone { background:var(--surface); border:1px solid var(--border2); padding:14px; border-radius:2px; border-top-width:2px; }
+.sig-zone-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:6px; }
+.sig-zone-val { font-family:var(--mono); font-size:20px; font-weight:500; line-height:1; margin-bottom:4px; }
+.sig-zone-note { font-family:var(--mono); font-size:10px; color:var(--muted2); line-height:1.4; }
+
+.sig-confluence { background:var(--surface); border:1px solid var(--border2); border-radius:2px; overflow:hidden; }
+.sig-conf-head { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.sig-conf-title { font-family:var(--orb); font-size:9px; letter-spacing:2px; color:var(--muted2); }
+.sig-conf-body { padding:14px; }
+.sig-conf-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:11px; }
+.sig-conf-row:last-child { border:none; }
+.sig-conf-factor { color:var(--muted2); }
+.sig-conf-status { display:flex; align-items:center; gap:6px; }
+.sig-conf-dot { width:6px; height:6px; border-radius:50%; }
+
+.sig-thesis { background:var(--surface2); border-left:2px solid var(--gold); padding:12px 14px; border-radius:0 3px 3px 0; font-size:12px; line-height:1.7; color:#7A9AAA; }
+.sig-thesis-label { font-family:var(--orb); font-size:8px; letter-spacing:2px; color:var(--gold); margin-bottom:6px; }
+
+.sig-watch { display:flex; flex-direction:column; gap:6px; }
+.sig-watch-item { display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:var(--surface); border:1px solid var(--border2); border-radius:2px; }
+.sig-watch-icon { font-size:13px; flex-shrink:0; }
+.sig-watch-content { flex:1; }
+.sig-watch-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.sig-watch-desc { font-family:var(--mono); font-size:10px; color:var(--muted2); line-height:1.4; }
+.sig-watch-urgency { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:1px; align-self:center; flex-shrink:0; }
+
+.sig-section-title { font-family:var(--orb); font-size:9px; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+
+.sig-loading {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  position:absolute; inset:0; background:rgba(3,6,10,0.92); z-index:10;
+}
+.sig-spinner { width:32px; height:32px; border:2px solid var(--border2); border-top-color:var(--teal); border-radius:50%; animation:spin 0.8s linear infinite; }
+.sig-load-text { font-family:var(--mono); font-size:10px; color:var(--muted2); letter-spacing:2px; }
+
+.sig-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; }
+.sig-empty-icon { font-family:var(--orb); font-size:48px; opacity:0.1; color:var(--teal); }
+.sig-empty-text { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:var(--muted2); }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div id="header">
+  <div class="header-logo">
+    <div class="logo-mark"><div class="logo-mark-inner"></div></div>
+    <div>
+      <div class="logo-text">NEXUS</div>
+      <div class="logo-sub">GEOPOLITICAL · FINANCIAL · INTELLIGENCE</div>
+    </div>
+  </div>
+
+  <div class="mode-switch">
+    <button class="mode-btn active" id="btnMap" onclick="setMode('map')">⬡ MAP</button>
+    <button class="mode-btn" id="btnIntel" onclick="setMode('intel')">◈ INTEL</button>
+    <button class="mode-btn" id="btnSignals" onclick="setMode('signals')">▲ SIGNALS</button>
+  </div>
+
+  <div class="header-stats">
+    <div class="stat-item">
+      <div class="stat-label">GOLD XAU/USD</div>
+      <div class="stat-value" id="statGold">$5,037</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">CRUDE OIL</div>
+      <div class="stat-value" id="statOil" style="color:var(--teal)">$107.59</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">AUD/USD</div>
+      <div class="stat-value" id="statAUD" style="color:var(--red)">0.6240</div>
+    </div>
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span id="liveClock">--:--</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAP VIEW ═══ -->
+<div class="view" id="mapView">
+  <canvas id="mapCanvas"></canvas>
+
+  <div id="mapTooltip">
+    <div class="tooltip-name" id="ttName"></div>
+    <div class="tooltip-type" id="ttType"></div>
+    <div class="tooltip-hint">CLICK TO ANALYSE</div>
+  </div>
+
+  <div id="mapLegend">
+    <div class="legend-header">NODE TYPES</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#E8394A"></div>Geopolitical</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#C9A84C"></div>Financial</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#00D4AA"></div>Commodity</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#8B5CF6"></div>Shadow Layer</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#3A7FD5"></div>Policy / Law</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#E87B34"></div>Australia</div>
+  </div>
+
+  <div id="mapControls">
+    <button class="ctrl-btn" onclick="resetMapView()">RESET</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="shadowBtn" onclick="toggleShadow()">SHADOW LAYER: ON</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" onclick="addCustomNode()">+ NODE</button>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-hint">SCROLL ZOOM · DRAG PAN · CLICK ANALYSE</span>
+  </div>
+</div>
+
+<!-- ═══ INTEL VIEW ═══ -->
+<div class="view hidden" id="intelView">
+  <div class="intel-header">
+    <div class="intel-context">
+      <div class="intel-breadcrumb">
+        <span>NEXUS</span>
+        <span class="breadcrumb-sep">›</span>
+        <span>INTEL ANALYSIS</span>
+        <span class="breadcrumb-sep" id="breadcrumbNodeSep" style="display:none">›</span>
+        <span id="breadcrumbNode" style="color:var(--gold)"></span>
+      </div>
+      <div class="intel-query-display" id="intelQueryDisplay">Enter a market event to analyse</div>
+    </div>
+    <div class="intel-query-area">
+      <textarea class="intel-input" id="intelInput" placeholder="Ask NEXUS anything about markets, geopolitics, assets..."></textarea>
+      <button class="intel-go" id="intelGoBtn" onclick="runIntelAnalysis()">RUN →</button>
+    </div>
+  </div>
+
+  <div class="intel-chips">
+    <div class="chip" onclick="intelChip('Oil spike above $107 — downstream impact on Australia and ceiling before intervention')">🛢 Oil spike</div>
+    <div class="chip" onclick="intelChip('Gold at $5000+ ATH — how long does this run and what breaks it')">🥇 Gold ATH</div>
+    <div class="chip" onclick="intelChip('Strait of Hormuz closure — Australian fuel shortage timeline and impact')">🚢 Hormuz</div>
+    <div class="chip" onclick="intelChip('Australian super fund systemic risk — The Great Taking scenario')">⚠️ Super risk</div>
+    <div class="chip" onclick="intelChip('Silver breakout above $80 — sustainability and what drives it further')">🥈 Silver</div>
+    <div class="chip" onclick="intelChip('RBA rate decision impact on Melbourne property market 2026')">🏠 RBA/Property</div>
+    <div class="chip" onclick="intelChip('CBDC rollout in Australia — what it means for cash, gold, and freedom')">💳 CBDC</div>
+    <div class="chip" onclick="intelChip('USD weakening — impact on AUD, gold, and Australian purchasing power')">💵 USD weak</div>
+  </div>
+
+  <div class="intel-body" id="intelBody">
+    <div class="intel-empty" id="intelEmpty">
+      <div class="empty-hex">◈</div>
+      <div class="empty-title">INTEL READY</div>
+      <div class="empty-desc">Enter any market event, asset, or geopolitical question. NEXUS analyses impact, scenarios, key price levels, ripple effects and action steps — with an Australian lens.</div>
+    </div>
+    <div class="intel-loading" id="intelLoading" style="display:none">
+      <div class="intel-spinner"></div>
+      <div class="intel-loading-text" id="intelLoadingText">PROCESSING...</div>
+      <div class="intel-loading-bar"><div class="intel-loading-fill"></div></div>
+    </div>
+    <div class="intel-results" id="intelResults"></div>
+  </div>
+</div>
+
+<!-- ═══ SIGNALS VIEW ═══ -->
+<div class="view hidden" id="signalsView">
+  <div class="signals-header">
+    <div>
+      <div class="signals-title">▲ SIGNALS MODE</div>
+      <div class="signals-sub">CONFLUENCE SCORES · ENTRY/EXIT ZONES · MACRO ALIGNMENT</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="sigLastUpdate">LAST UPDATE: —</div>
+      <button class="signals-refresh" id="sigRefreshBtn" onclick="loadAllSignals()">↻ REFRESH ALL</button>
+    </div>
+  </div>
+
+  <!-- Asset ticker tabs -->
+  <div class="signals-ticker" id="sigTicker">
+    <div class="sig-asset-tab active" id="sigtab-GOLD" onclick="selectSigAsset('GOLD')">
+      <div class="sig-asset-name">GOLD</div>
+      <div class="sig-asset-score" id="sigscore-GOLD" style="color:var(--gold)">—</div>
+      <div class="sig-asset-signal" id="sigsig-GOLD" style="background:rgba(201,168,76,0.1);color:var(--gold)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-SILVER" onclick="selectSigAsset('SILVER')">
+      <div class="sig-asset-name">SILVER</div>
+      <div class="sig-asset-score" id="sigscore-SILVER" style="color:var(--muted2)">—</div>
+      <div class="sig-asset-signal" id="sigsig-SILVER" style="background:rgba(90,122,148,0.1);color:var(--muted2)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-BTC" onclick="selectSigAsset('BTC')">
+      <div class="sig-asset-name">BTC</div>
+      <div class="sig-asset-score" id="sigscore-BTC" style="color:var(--orange)">—</div>
+      <div class="sig-asset-signal" id="sigsig-BTC" style="background:rgba(232,123,52,0.1);color:var(--orange)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-XRP" onclick="selectSigAsset('XRP')">
+      <div class="sig-asset-name">XRP</div>
+      <div class="sig-asset-score" id="sigscore-XRP" style="color:var(--blue)">—</div>
+      <div class="sig-asset-signal" id="sigsig-XRP" style="background:rgba(58,127,213,0.1);color:var(--blue)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-URNM" onclick="selectSigAsset('URNM')">
+      <div class="sig-asset-name">URNM</div>
+      <div class="sig-asset-score" id="sigscore-URNM" style="color:var(--teal)">—</div>
+      <div class="sig-asset-signal" id="sigsig-URNM" style="background:rgba(0,212,170,0.1);color:var(--teal)">LOADING</div>
+    </div>
+    <div class="sig-asset-tab" id="sigtab-COPX" onclick="selectSigAsset('COPX')">
+      <div class="sig-asset-name">COPX</div>
+      <div class="sig-asset-score" id="sigscore-COPX" style="color:var(--orange)">—</div>
+      <div class="sig-asset-signal" id="sigsig-COPX" style="background:rgba(232,123,52,0.1);color:var(--orange)">LOADING</div>
+    </div>
+  </div>
+
+  <!-- Main signals body -->
+  <div class="signals-body" id="signalsBody">
+    <!-- LEFT: Score + factor breakdown -->
+    <div class="sig-left" id="sigLeft">
+      <div class="sig-empty">
+        <div class="sig-empty-icon">▲</div>
+        <div class="sig-empty-text">LOADING SIGNALS...</div>
+      </div>
+    </div>
+    <!-- RIGHT: Entry/Exit + Detail -->
+    <div class="sig-right" id="sigRight">
+      <div class="sig-empty">
+        <div class="sig-empty-icon">◈</div>
+        <div class="sig-empty-text">SELECT ASSET ABOVE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE PANEL ═══ -->
+<div id="slidePanel">
+  <div class="sp-head">
+    <button class="sp-close" onclick="closePanel()">✕</button>
+    <div class="sp-cat" id="spCat"></div>
+    <div class="sp-title" id="spTitle"></div>
+    <div class="sp-meta" id="spMeta"></div>
+  </div>
+  <button class="deep-dive-btn" id="deepDiveBtn" onclick="deepDive()">◈ DEEP DIVE IN INTEL →</button>
+  <div class="sp-tabs">
+    <button class="sp-tab active" onclick="spTab('why')">WHY</button>
+    <button class="sp-tab" onclick="spTab('shadow')">SHADOW</button>
+    <button class="sp-tab" onclick="spTab('money')">MONEY</button>
+    <button class="sp-tab" onclick="spTab('act')">ACT</button>
+  </div>
+  <div class="sp-body" id="spBody">
+    <div class="sp-loading" id="spLoading">
+      <div class="sp-spinner"></div>
+      <div class="sp-loading-text">ANALYSING...</div>
+    </div>
+    <div id="spContent" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ═══ CONFIG ═══
+const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
+
+// ═══ CLOCK ═══
+setInterval(() => {
+  document.getElementById('liveClock').textContent = new Date().toUTCString().slice(17,22) + ' UTC';
+}, 1000);
+
+// Simulate small price movements
+setInterval(() => {
+  const goldEl = document.getElementById('statGold');
+  const v = 5037 + (Math.random()-0.5)*40;
+  goldEl.textContent = '$' + v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  goldEl.style.color = Math.random()>0.5 ? 'var(--teal)' : 'var(--red)';
+}, 3000);
+
+// ═══ MODE SWITCHING ═══
+let currentMode = 'map';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('mapView').classList.toggle('hidden', mode !== 'map');
+  document.getElementById('intelView').classList.toggle('hidden', mode !== 'intel');
+  document.getElementById('signalsView').classList.toggle('hidden', mode !== 'signals');
+  document.getElementById('btnMap').classList.toggle('active', mode === 'map');
+  document.getElementById('btnIntel').classList.toggle('active', mode === 'intel');
+  document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
+  if (mode !== 'map') closePanel();
+  if (mode === 'signals' && !sigDataCache['GOLD']) loadAllSignals();
+}
+
+// ═══ NODE DATA ═══
+const typeColors = {
+  geo: '#E8394A', financial: '#C9A84C', resource: '#00D4AA',
+  shadow: '#8B5CF6', policy: '#3A7FD5', aus: '#E87B34'
+};
+
+const nodes = [
+  { id:'hormuz', x:0, y:0, label:'STRAIT OF\nHORMUZ', type:'geo', size:44, pulse:true,
+    connections:['iran','oil','israel','us_mil','aus_fuel'] },
+  { id:'iran', x:-175, y:-80, label:'IRAN\nSANCTIONS', type:'geo', size:32, connections:['hormuz','russia','brics','petrodollar'] },
+  { id:'israel', x:140, y:-100, label:'ISRAEL\nCONFLICT', type:'geo', size:30, connections:['hormuz','us_mil','gold'] },
+  { id:'us_mil', x:185, y:50, label:'US MILITARY\nACTION', type:'geo', size:34, connections:['hormuz','israel','petrodollar','usd'] },
+  { id:'russia', x:-235, y:40, label:'RUSSIA\nUKRAINE', type:'geo', size:28, connections:['iran','brics','gold','eu_energy'] },
+  { id:'usd', x:110, y:165, label:'USD\nWEAKENING', type:'financial', size:36, connections:['gold','petrodollar','aud','fed'] },
+  { id:'fed', x:235, y:140, label:'FED\nPARALYSIS', type:'financial', size:28, connections:['usd','inflation','stocks'] },
+  { id:'petrodollar', x:-45, y:175, label:'PETRODOLLAR\nEND', type:'shadow', size:32, connections:['usd','iran','brics','gold'] },
+  { id:'brics', x:-175, y:140, label:'BRICS\nCURRENCY', type:'shadow', size:30, connections:['petrodollar','russia','gold','iran'] },
+  { id:'inflation', x:200, y:-45, label:'STAGFLATION\nRISK', type:'financial', size:30, connections:['fed','oil','aus_rba','stocks'] },
+  { id:'stocks', x:280, y:-20, label:'MARKETS\nDUMPING', type:'financial', size:28, connections:['inflation','fed','gold'] },
+  { id:'oil', x:-90, y:-140, label:'OIL PRICE\nSPIKE', type:'resource', size:40, connections:['hormuz','aus_fuel','inflation','gold','aus_const'] },
+  { id:'gold', x:35, y:-175, label:'GOLD\nATH', type:'resource', size:38, connections:['usd','oil','israel','cb_gold','great_taking'] },
+  { id:'silver', x:-45, y:-220, label:'SILVER\nSURGE', type:'resource', size:26, connections:['gold','solar','ai_silver'] },
+  { id:'eu_energy', x:-280, y:-30, label:'EUROPE\nENERGY', type:'resource', size:24, connections:['russia','oil'] },
+  { id:'great_taking', x:100, y:-260, label:'THE GREAT\nTAKING', type:'shadow', size:36, connections:['gold','cb_gold','super_aus','bis'] },
+  { id:'cb_gold', x:-15, y:-285, label:'CENTRAL BANK\nGOLD BUY', type:'shadow', size:30, connections:['gold','great_taking','usd','bis'] },
+  { id:'bis', x:-130, y:-235, label:'BIS\nCONTROL', type:'shadow', size:26, connections:['cb_gold','great_taking','fed'] },
+  { id:'wef', x:210, y:-175, label:'GREAT RESET\nWEF', type:'shadow', size:28, connections:['great_taking','cbdc','super_aus'] },
+  { id:'cbdc', x:295, y:-100, label:'CBDC\nROLLOUT', type:'policy', size:28, connections:['wef','aus_rba','cash_ban'] },
+  { id:'cash_ban', x:305, y:50, label:'CASH\nBAN PUSH', type:'policy', size:22, connections:['cbdc','aus_rba'] },
+  { id:'aus_fuel', x:-130, y:80, label:'AUS FUEL\nSHORTAGE', type:'aus', size:32, connections:['hormuz','oil','aus_const','aus_rba'] },
+  { id:'aud', x:60, y:235, label:'AUD/USD\nFALL', type:'financial', size:26, connections:['usd','aus_rba','aus_prop'] },
+  { id:'aus_rba', x:-55, y:250, label:'RBA\nDECISION', type:'policy', size:30, connections:['aus_fuel','aud','aus_prop','inflation','cbdc'] },
+  { id:'aus_prop', x:-175, y:225, label:'MELBOURNE\nPROPERTY', type:'aus', size:28, connections:['aus_rba','aud','aus_const'] },
+  { id:'aus_const', x:-260, y:140, label:'CONSTRUCTION\nCOSTS', type:'aus', size:26, connections:['aus_fuel','oil','aus_prop'] },
+  { id:'super_aus', x:175, y:235, label:'SUPER FUND\nRISK', type:'policy', size:30, connections:['great_taking','aus_rba','wef','apra'] },
+  { id:'apra', x:280, y:185, label:'APRA\nPOWERS', type:'shadow', size:24, connections:['super_aus','cash_ban'] },
+  { id:'ai_silver', x:-65, y:-310, label:'AI SILVER\nDEMAND', type:'resource', size:22, connections:['silver','solar'] },
+  { id:'solar', x:-175, y:-295, label:'SOLAR/EV\nMETALS', type:'resource', size:22, connections:['silver','ai_silver'] },
+];
+
+// ═══ CANVAS SETUP ═══
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
+resize(); window.addEventListener('resize', resize);
+
+let vx=0, vy=0, sc=0.9, tvx=0, tvy=0, tsc=0.9;
+let isDrag=false, lmx=0, lmy=0;
+let selNode=null, hovNode=null, showShadow=true;
+let panelData={}, spActiveTab='why';
+let currentPanelNode=null;
+
+const anim = {};
+nodes.forEach(n => { anim[n.id]={s:0}; setTimeout(()=>{anim[n.id].s=1;}, Math.random()*600+100); });
+
+function npos(n) { return { x: W/2+(n.x+vx)*sc, y: H/2+(n.y+vy)*sc }; }
+
+function drawAll() {
+  ctx.clearRect(0,0,W,H);
+  vx+=(tvx-vx)*0.1; vy+=(tvy-vy)*0.1; sc+=(tsc-sc)*0.1;
+  Object.values(anim).forEach(a=>{ if(a.s<1) a.s=Math.min(1,a.s+0.04); });
+
+  // Edges
+  nodes.forEach(n=>{
+    n.connections.forEach(cid=>{
+      const t=nodes.find(x=>x.id===cid); if(!t) return;
+      if((n.type==='shadow'||t.type==='shadow')&&!showShadow) return;
+      const an=anim[n.id], at=anim[t.id];
+      if(!an||!at||an.s<0.5||at.s<0.5) return;
+      const pn=npos(n), pt=npos(t);
+      const isHl = selNode && ((selNode.id===n.id && selNode.connections.includes(cid))||(selNode.id===cid && selNode.connections.includes(n.id)));
+      const dim = selNode && !isHl;
+      const col = isHl ? (typeColors[n.type]||'#FFF') : '#1A2D42';
+      const alpha = dim?'18': isHl?'BB':'50';
+      ctx.save();
+      ctx.beginPath();
+      const mx=(pn.x+pt.x)/2+(pt.y-pn.y)*0.08, my=(pn.y+pt.y)/2-(pt.x-pn.x)*0.08;
+      ctx.moveTo(pn.x,pn.y); ctx.quadraticCurveTo(mx,my,pt.x,pt.y);
+      ctx.strokeStyle=col+alpha; ctx.lineWidth=isHl?1.5:0.7;
+      if(!isHl) ctx.setLineDash([4*sc,8*sc]);
+      ctx.stroke(); ctx.setLineDash([]);
+      if(isHl){
+        const ang=Math.atan2(pt.y-my,pt.x-mx), as=6*sc;
+        ctx.beginPath();
+        ctx.moveTo(pt.x-Math.cos(ang)*as*2,pt.y-Math.sin(ang)*as*2);
+        ctx.lineTo(pt.x-Math.cos(ang-.4)*as,pt.y-Math.sin(ang-.4)*as);
+        ctx.lineTo(pt.x-Math.cos(ang+.4)*as,pt.y-Math.sin(ang+.4)*as);
+        ctx.closePath(); ctx.fillStyle=col+alpha; ctx.fill();
+      }
+      ctx.restore();
+    });
+  });
+
+  // Nodes
+  ['aus','resource','financial','policy','geo','shadow'].forEach(type=>{
+    nodes.filter(n=>n.type===type).forEach(n=>{
+      if(n.type==='shadow'&&!showShadow) return;
+      const a=anim[n.id]; if(!a||a.s<=0) return;
+      const p=npos(n), r=n.size*sc*a.s;
+      const col=typeColors[n.type]||'#FFF';
+      const isSel=selNode&&selNode.id===n.id;
+      const isConn=selNode&&selNode.connections.includes(n.id);
+      const isHov=hovNode&&hovNode.id===n.id;
+      ctx.save();
+      if(n.pulse||isSel){
+        const pr=r*(1+0.25*Math.sin(Date.now()*0.003));
+        ctx.beginPath(); ctx.arc(p.x,p.y,pr,0,Math.PI*2);
+        ctx.strokeStyle=col+'25'; ctx.lineWidth=2; ctx.stroke();
+      }
+      if(isSel||isHov){ ctx.shadowColor=col; ctx.shadowBlur=20*sc; }
+      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+      if(isSel){ ctx.fillStyle=col+'28'; ctx.fill(); ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.stroke(); }
+      else if(isConn){ ctx.fillStyle=col+'18'; ctx.fill(); ctx.strokeStyle=col+'99'; ctx.lineWidth=1.5; ctx.stroke(); }
+      else{ ctx.fillStyle=col+'12'; ctx.fill(); ctx.strokeStyle=col+(isHov?'BB':'44'); ctx.lineWidth=isHov?2:0.8; ctx.stroke(); }
+      ctx.shadowBlur=0;
+      const lines=n.label.split('\n');
+      const fs=Math.max(7,10*sc*a.s);
+      ctx.fillStyle=isSel?col:(isConn?col+'CC':col+(selNode?'66':'99'));
+      ctx.font=`${fs}px 'DM Mono'`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      const lh=Math.max(9,13*sc), th=lines.length*lh;
+      lines.forEach((l,i)=>ctx.fillText(l,p.x,p.y-th/2+lh*(i+.5)));
+      ctx.restore();
+    });
+  });
+
+  requestAnimationFrame(drawAll);
+}
+drawAll();
+
+// ═══ MAP INTERACTION ═══
+function nodeAt(mx,my){
+  for(let i=nodes.length-1;i>=0;i--){
+    const n=nodes[i];
+    if(n.type==='shadow'&&!showShadow) continue;
+    const p=npos(n), r=n.size*sc, dx=mx-p.x, dy=my-p.y;
+    if(dx*dx+dy*dy<r*r*1.6) return n;
+  } return null;
+}
+
+canvas.addEventListener('mousedown',e=>{
+  const n=nodeAt(e.clientX,e.clientY-56);
+  if(n){ openPanel(n); } else { isDrag=true; lmx=e.clientX; lmy=e.clientY; }
+});
+
+canvas.addEventListener('mousemove',e=>{
+  const n=nodeAt(e.clientX,e.clientY-56);
+  hovNode=n;
+  const tt=document.getElementById('mapTooltip');
+  if(n){ 
+    canvas.style.cursor='pointer';
+    tt.style.display='block'; tt.style.left=(e.clientX+14)+'px'; tt.style.top=(e.clientY-50)+'px';
+    document.getElementById('ttName').textContent=n.label.replace('\n',' ');
+    document.getElementById('ttType').textContent=n.type.toUpperCase()+' NODE';
+    tt.style.borderLeftColor=typeColors[n.type];
+  } else { tt.style.display='none'; canvas.style.cursor=isDrag?'grabbing':'grab'; }
+  if(isDrag){ tvx+=(e.clientX-lmx)/sc; tvy+=(e.clientY-lmy)/sc; lmx=e.clientX; lmy=e.clientY; }
+});
+
+canvas.addEventListener('mouseup',()=>isDrag=false);
+canvas.addEventListener('mouseleave',()=>{ isDrag=false; document.getElementById('mapTooltip').style.display='none'; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); tsc=Math.max(0.25,Math.min(3,tsc*(e.deltaY>0?.88:1.12))); },{passive:false});
+
+let ltd=0;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){ const t=e.touches[0]; const n=nodeAt(t.clientX,t.clientY-56); if(n) openPanel(n); else{isDrag=true;lmx=t.clientX;lmy=t.clientY;} }
+  if(e.touches.length===2) ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&isDrag){ tvx+=(e.touches[0].clientX-lmx)/sc; tvy+=(e.touches[0].clientY-lmy)/sc; lmx=e.touches[0].clientX; lmy=e.touches[0].clientY; }
+  if(e.touches.length===2){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); tsc=Math.max(.25,Math.min(3,tsc*(d/ltd))); ltd=d; }
+},{passive:false});
+canvas.addEventListener('touchend',()=>isDrag=false);
+
+function resetMapView(){ tvx=0; tvy=0; tsc=0.9; }
+function toggleShadow(){
+  showShadow=!showShadow;
+  const btn=document.getElementById('shadowBtn');
+  btn.textContent='SHADOW LAYER: '+(showShadow?'ON':'OFF');
+  btn.classList.toggle('toggled',!showShadow);
+}
+
+function addCustomNode(){
+  const q=prompt('ADD NODE — Enter event or asset:'); if(!q) return;
+  const angle=Math.random()*Math.PI*2, dist=280+Math.random()*180;
+  const nid='custom_'+Date.now();
+  const nn={ id:nid, x:Math.cos(angle)*dist, y:Math.sin(angle)*dist,
+    label:q.toUpperCase().slice(0,16), type:'financial', size:26, connections:['gold','usd','aus_rba'] };
+  nodes.push(nn); anim[nid]={s:0};
+  setTimeout(()=>{ anim[nid].s=1; openPanel(nn); },300);
+}
+
+// ═══ SLIDE PANEL ═══
+async function openPanel(node){
+  selNode=node; currentPanelNode=node;
+  tvx=-node.x; tvy=-node.y;
+  const col=typeColors[node.type];
+  document.getElementById('spCat').textContent='// '+node.type.toUpperCase()+' NODE';
+  document.getElementById('spCat').style.color=col;
+  document.getElementById('spTitle').textContent=node.label.replace('\n',' ');
+  document.getElementById('spMeta').textContent=node.connections.length+' connections · '+new Date().toUTCString().slice(5,16);
+  document.getElementById('spLoading').style.display='flex';
+  document.getElementById('spContent').style.display='none';
+  document.getElementById('slidePanel').classList.add('open');
+  spTab('why',false);
+
+  try {
+    const res=await fetch(NEXUS_WORKER_URL,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-haiku-4-5-20251001", max_tokens:1200,
+        messages:[{role:"user",content:`You are a macro market analyst. Analyse the topic: "${node.label.replace('\n',' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is an Australian investor/subcontractor in Melbourne.
+
+Respond ONLY with valid JSON (no markdown, no backticks):
+{
+  "why":"2-3 sentences on what this topic is and why it is significant for markets right now",
+  "shadow":"2-3 sentences on the less-discussed market dynamics and structural factors that analysts are watching",
+  "money":"2-3 sentences on the specific financial impact for an Australian investor — which assets are affected and by how much",
+  "act":{"immediate":"one action to consider in the next 48 hours","shortTerm":"one action for the next 2-4 weeks","longTerm":"one positioning idea for 6-18 months"},
+  "connectedInsights":{"${node.connections.slice(0,3).join('":"one line market insight","')}":"one line market insight"}
+}`}]
+      })
+    });
+    const d=await res.json();
+    const raw=d.content.map(i=>i.text||'').join('');
+    console.log('RAW RESPONSE:', raw);
+    const t=raw.replace(/```json|```/g,'').trim();
+    const jsonStart=t.indexOf('{'), jsonEnd=t.lastIndexOf('}');
+    panelData=JSON.parse(t.slice(jsonStart, jsonEnd+1));
+  } catch(e){ console.error('PANEL ERROR:', e); panelData={why:'Analysis unavailable: '+e.message,shadow:'—',money:'—',act:'—',connectedInsights:{}}; }
+
+  document.getElementById('spLoading').style.display='none';
+  document.getElementById('spContent').style.display='block';
+  renderSpContent();
+}
+
+function renderSpContent(){
+  const d=panelData; const node=currentPanelNode;
+  const col=typeColors[node.type];
+  const act=typeof d.act==='object'?d.act:{immediate:d.act,shortTerm:'',longTerm:''};
+
+  const tabs={
+    why:`<div class="sp-block" style="border-left-color:${col}"><div class="sp-block-label" style="color:${col}">WHAT & WHY NOW</div>${d.why||'—'}</div>`,
+    shadow:`<div class="sp-block" style="border-left-color:#8B5CF6"><div class="sp-block-label" style="color:#8B5CF6">THE DEEPER PATTERN</div>${d.shadow||'—'}</div>`,
+    money:`<div class="sp-block" style="border-left-color:#C9A84C"><div class="sp-block-label" style="color:#C9A84C">YOUR $ IMPACT — MELBOURNE</div>${d.money||'—'}</div>`,
+    act:`
+      <div class="sp-block" style="border-left-color:#00D4AA"><div class="sp-block-label" style="color:#00D4AA">NOW — 48 HRS</div>${act.immediate||d.act||'—'}</div>
+      <div class="sp-block" style="border-left-color:#C9A84C"><div class="sp-block-label" style="color:#C9A84C">SHORT TERM — 2-4 WEEKS</div>${act.shortTerm||'—'}</div>
+      <div class="sp-block" style="border-left-color:#3A7FD5"><div class="sp-block-label" style="color:#3A7FD5">LONG TERM — 6-18 MONTHS</div>${act.longTerm||'—'}</div>
+    `
+  };
+
+  let connHtml='<div style="margin-top:14px"><div class="sp-block-label" style="color:var(--muted2);margin-bottom:8px">CONNECTED NODES</div><div class="conn-chips">';
+  node.connections.forEach(cid=>{
+    const cn=nodes.find(x=>x.id===cid); if(!cn) return;
+    connHtml+=`<div class="conn-chip" onclick="openPanel(nodes.find(x=>x.id==='${cid}'))"><div class="conn-chip-dot" style="background:${typeColors[cn.type]}"></div>${cn.label.replace('\n',' ')}</div>`;
+  });
+  connHtml+='</div></div>';
+
+  document.getElementById('spContent').innerHTML = tabs[spActiveTab]+(spActiveTab==='act'?connHtml:connHtml);
+}
+
+function spTab(tab, doRender=true){
+  spActiveTab=tab;
+  document.querySelectorAll('.sp-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.sp-tab[onclick*="'${tab}'"]`).classList.add('active');
+  if(doRender&&document.getElementById('spContent').style.display!=='none') renderSpContent();
+}
+
+function closePanel(){ document.getElementById('slidePanel').classList.remove('open'); selNode=null; }
+
+function deepDive(){
+  if(!currentPanelNode) return;
+  const q=currentPanelNode.label.replace('\n',' ')+' — analyse market impact, price levels, scenarios and action steps for Australian investor';
+  setMode('intel');
+  document.getElementById('breadcrumbNodeSep').style.display='inline';
+  document.getElementById('breadcrumbNode').textContent=currentPanelNode.label.replace('\n',' ');
+  closePanel();
+  runIntelAnalysis(q);
+}
+
+// ═══ INTEL ANALYSIS ═══
+let intelCurrentQuery='';
+const loadMsgs=['SCANNING SIGNALS...','MAPPING CASCADES...','CALCULATING THRESHOLDS...','BUILDING SCENARIOS...','SYNTHESISING INTEL...'];
+let loadIdx=0, loadTimer;
+
+function intelChip(q){ document.getElementById('intelInput').value=q; runIntelAnalysis(q); }
+
+async function runIntelAnalysis(overrideQ){
+  const q=overrideQ||document.getElementById('intelInput').value.trim();
+  if(!q) return;
+  intelCurrentQuery=q;
+  document.getElementById('intelQueryDisplay').textContent=q;
+  document.getElementById('intelGoBtn').disabled=true;
+  document.getElementById('intelGoBtn').textContent='RUNNING...';
+  document.getElementById('intelEmpty').style.display='none';
+  document.getElementById('intelResults').className='intel-results';
+  document.getElementById('intelResults').innerHTML='';
+  document.getElementById('intelLoading').style.display='flex';
+  loadIdx=0;
+  loadTimer=setInterval(()=>{ document.getElementById('intelLoadingText').textContent=loadMsgs[loadIdx++%loadMsgs.length]; },900);
+
+  const sys=`You are a macro market analyst providing financial education. Context: March 2026, gold elevated ~$5000, oil above $100, Middle East supply disruptions affecting shipping, USD weakening, AUD under pressure, Australian property market uncertain, RBA navigating inflation.
+
+The reader is an Australian investor/subcontractor in Melbourne seeking market education.
+
+Respond ONLY with valid JSON (no markdown, no backticks):
+{
+  "asset":"SHORT NAME",
+  "sentiment":"BULLISH|BEARISH|VOLATILE|NEUTRAL",
+  "analysis":["paragraph 1 — what is happening and why with specific numbers","paragraph 2 — the mechanism and threshold","paragraph 3 — Australian specific impact"],
+  "impactRadar":[
+    {"asset":"GOLD","dir":"up|down|neutral","pct":80,"note":"brief why"},
+    {"asset":"SILVER","dir":"up|down|neutral","pct":65,"note":"brief why"},
+    {"asset":"OIL","dir":"up|down|neutral","pct":85,"note":"brief why"},
+    {"asset":"AUD/USD","dir":"up|down|neutral","pct":55,"note":"brief why"},
+    {"asset":"ASX 200","dir":"up|down|neutral","pct":60,"note":"brief why"},
+    {"asset":"PROPERTY","dir":"up|down|neutral","pct":35,"note":"brief why"}
+  ],
+  "levels":[
+    {"lbl":"CURRENT","val":"$X","note":"where we are","color":"#00D4AA"},
+    {"lbl":"TARGET 1","val":"$X","note":"first level","color":"#C9A84C"},
+    {"lbl":"INTERVENTION","val":"$X","note":"govt/CB acts here","color":"#E87B34"},
+    {"lbl":"SUPPORT","val":"$X","note":"floor on reversal","color":"#3A7FD5"}
+  ],
+  "scenarios":[
+    {"type":"base","lbl":"BASE CASE","prob":"55%","text":"most likely 2-4 week outcome with price targets"},
+    {"type":"bull","lbl":"BULL CASE","prob":"25%","text":"upside triggers and targets"},
+    {"type":"bear","lbl":"BEAR CASE","prob":"20%","text":"downside triggers and what breaks it"}
+  ],
+  "ripples":[
+    {"icon":"⛽","title":"Fuel Costs","desc":"AUS petrol price impact and timeline","imp":"+HIGH","ic":"rgba(232,57,74,0.15)","tc":"#E8394A"},
+    {"icon":"🏗","title":"Construction","desc":"Melbourne trades cost impact","imp":"+MED","ic":"rgba(201,168,76,0.15)","tc":"#C9A84C"},
+    {"icon":"🏦","title":"RBA Response","desc":"rate decision implications","imp":"WATCH","ic":"rgba(58,127,213,0.15)","tc":"#3A7FD5"},
+    {"icon":"🥇","title":"Physical Gold","desc":"specific recommendation on physical metals","imp":"BUY","ic":"rgba(0,212,170,0.12)","tc":"#00D4AA"}
+  ],
+  "timeline":[
+    {"cls":"now","time":"24-72 HOURS","title":"Immediate signal","desc":"what to watch right now"},
+    {"cls":"soon","time":"1-2 WEEKS","title":"Confirmation point","desc":"key event or data that confirms or denies"},
+    {"cls":"soon","time":"1 MONTH","title":"Medium signal","desc":"30-day outlook"},
+    {"cls":"later","time":"3-6 MONTHS","title":"Resolution","desc":"longer term outcome and portfolio positioning"}
+  ]
+}`;
+
+  try {
+    const res=await fetch(NEXUS_WORKER_URL,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1400,messages:[{role:"user",content:sys+"\n\nQUERY: "+q}]})
+    });
+    const d=await res.json();
+    const raw=d.content.map(i=>i.text||'').join('');
+    const t=raw.replace(/```json|```/g,'').trim();
+    const jsonStart=t.indexOf('{'), jsonEnd=t.lastIndexOf('}');
+    renderIntel(JSON.parse(t.slice(jsonStart, jsonEnd+1)));
+  } catch(e){
+    console.error('INTEL ERROR:', e);
+    clearInterval(loadTimer);
+    document.getElementById('intelLoading').style.display='none';
+    document.getElementById('intelEmpty').style.display='flex';
+    document.getElementById('intelEmpty').querySelector('.empty-desc').textContent='Error: '+e.message;
+  }
+
+  clearInterval(loadTimer);
+  document.getElementById('intelGoBtn').disabled=false;
+  document.getElementById('intelGoBtn').textContent='RUN →';
+}
+
+function renderIntel(d){
+  document.getElementById('intelLoading').style.display='none';
+  const sentCol={'BULLISH':'#00D4AA','BEARISH':'#E8394A','VOLATILE':'#C9A84C','NEUTRAL':'#3A7FD5'}[d.sentiment]||'#C9A84C';
+  const arrow=dir=>dir==='up'?'▲':dir==='down'?'▼':'→';
+  const acol=dir=>dir==='up'?'#00D4AA':dir==='down'?'#E8394A':'#C9A84C';
+
+  const html=`
+    <!-- Bridge banner if from map -->
+    <div class="bridge-banner ${document.getElementById('breadcrumbNode').textContent?'show':''}" style="display:${document.getElementById('breadcrumbNode').textContent?'flex':'none'}">
+      ⬡ Deep dive from MAP node: ${document.getElementById('breadcrumbNode').textContent} — full INTEL analysis below
+    </div>
+
+    <!-- Analysis -->
+    <div class="icard full fade-up">
+      <div class="icard-head">
+        <span class="icard-title">CORE ANALYSIS — ${d.asset||'ASSET'}</span>
+        <span class="icard-badge" style="background:${sentCol}20;color:${sentCol}">${d.sentiment||'ANALYSING'}</span>
+      </div>
+      <div class="icard-body">
+        ${(d.analysis||[]).map(p=>`<p class="analysis-para">${p}</p>`).join('')}
+      </div>
+    </div>
+
+    <!-- Impact + Levels -->
+    <div class="icard fade-up">
+      <div class="icard-head"><span class="icard-title">IMPACT RADAR</span><span class="icard-badge badge-gold">LIVE</span></div>
+      <div class="icard-body">
+        ${(d.impactRadar||[]).map(r=>`
+          <div class="impact-row">
+            <span class="impact-lbl">${r.asset}</span>
+            <div class="impact-track"><div class="impact-fill" style="width:${r.pct}%;background:${acol(r.dir)}"></div></div>
+            <span class="impact-val" style="color:${acol(r.dir)}">${arrow(r.dir)}${r.pct}%</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin:-4px 0 8px 82px">${r.note}</div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="icard fade-up">
+      <div class="icard-head"><span class="icard-title">KEY PRICE LEVELS</span><span class="icard-badge badge-teal">TARGETS</span></div>
+      <div class="icard-body"><div class="levels-grid">
+        ${(d.levels||[]).map(l=>`
+          <div class="level-box">
+            <div class="level-lbl">${l.lbl}</div>
+            <div class="level-val" style="color:${l.color||'var(--text)'}">${l.val}</div>
+            <div class="level-note">${l.note}</div>
+          </div>
+        `).join('')}
+      </div></div>
+    </div>
+
+    <!-- Scenarios + Ripples -->
+    <div class="icard fade-up">
+      <div class="icard-head"><span class="icard-title">SCENARIOS</span><span class="icard-badge badge-gold">3 PATHS</span></div>
+      <div class="icard-body">
+        ${(d.scenarios||[]).map(s=>`
+          <div class="scenario-block ${s.type}">
+            <div class="scenario-lbl">${s.lbl} — ${s.prob}</div>
+            <div class="scenario-text">${s.text}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="icard fade-up">
+      <div class="icard-head"><span class="icard-title">RIPPLE EFFECTS</span><span class="icard-badge badge-red">CASCADE</span></div>
+      <div class="icard-body">
+        ${(d.ripples||[]).map(r=>`
+          <div class="ripple-row">
+            <div class="ripple-icon">${r.icon}</div>
+            <div class="ripple-content">
+              <div class="ripple-title">${r.title}</div>
+              <div class="ripple-desc">${r.desc}</div>
+            </div>
+            <span class="ripple-badge" style="background:${r.ic};color:${r.tc}">${r.imp}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="icard full fade-up">
+      <div class="icard-head"><span class="icard-title">WHAT TO WATCH — FORWARD TIMELINE</span><span class="icard-badge badge-blue">FORWARD</span></div>
+      <div class="icard-body"><div class="tl">
+        ${(d.timeline||[]).map(t=>`
+          <div class="tl-item ${t.cls}">
+            <div class="tl-dot ${t.cls}"></div>
+            <div>
+              <div class="tl-time">${t.time}</div>
+              <div class="tl-title">${t.title}</div>
+              <div class="tl-desc">${t.desc}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div></div>
+    </div>
+  `;
+
+  const el=document.getElementById('intelResults');
+  el.innerHTML=html;
+  el.className='intel-results show';
+}
+
+document.getElementById('intelInput').addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) runIntelAnalysis(); });
+
+// ═══════════════════════════════════════════════
+// ═══ SIGNALS MODE ═══════════════════════════════
+// ═══════════════════════════════════════════════
+
+const SIG_ASSETS = ['GOLD','SILVER','BTC','XRP','URNM','COPX'];
+const sigDataCache = {};
+let sigActiveAsset = 'GOLD';
+let sigLoadingCount = 0;
+
+const SIG_COLORS = {
+  GOLD:'#C9A84C', SILVER:'#8AABB5', BTC:'#E87B34', XRP:'#3A7FD5', URNM:'#00D4AA', COPX:'#E87B34'
+};
+
+const SIG_LABELS = {
+  'STRONG BUY': { bg:'rgba(0,212,170,0.15)', color:'#00D4AA' },
+  'BUY':        { bg:'rgba(0,212,170,0.09)', color:'#00D4AA' },
+  'WATCH':      { bg:'rgba(201,168,76,0.12)', color:'#C9A84C' },
+  'AVOID':      { bg:'rgba(232,57,74,0.12)', color:'#E8394A' },
+  'SHORT':      { bg:'rgba(232,57,74,0.18)', color:'#E8394A' },
+};
+
+const SCORE_COLORS = s => s >= 75 ? '#00D4AA' : s >= 55 ? '#C9A84C' : s >= 35 ? '#E87B34' : '#E8394A';
+
+async function fetchAssetSignal(asset) {
+  const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
+Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
+{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
+
+  const res = await fetch(NEXUS_WORKER_URL,{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model:"claude-haiku-4-5-20251001", max_tokens:1000,
+      messages:[{role:"user",content:prompt}]
+    })
+  });
+  const d = await res.json();
+  const raw = d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+  const jsonStart = raw.indexOf('{'), jsonEnd = raw.lastIndexOf('}');
+  return JSON.parse(raw.slice(jsonStart, jsonEnd+1));
+}
+
+async function loadAllSignals() {
+  const btn = document.getElementById('sigRefreshBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ LOADING...';
+  sigLoadingCount = SIG_ASSETS.length;
+
+  // Reset tab scores
+  SIG_ASSETS.forEach(a => {
+    document.getElementById('sigscore-'+a).textContent = '—';
+    document.getElementById('sigsig-'+a).textContent = 'LOADING';
+  });
+
+  // Use session cache if available and not a manual refresh
+  const allCached = SIG_ASSETS.every(a => sessionStorage.getItem('nexus_sig_'+a));
+  if (allCached && Object.keys(sigDataCache).length === 0) {
+    SIG_ASSETS.forEach(a => {
+      try {
+        const d = JSON.parse(sessionStorage.getItem('nexus_sig_'+a));
+        sigDataCache[a] = d;
+        updateAssetTab(a, d);
+        if (a === sigActiveAsset) renderSigDetail(d);
+      } catch(e) {}
+    });
+    btn.disabled = false;
+    btn.textContent = '↻ REFRESH ALL';
+    document.getElementById('sigLastUpdate').textContent = 'CACHED · ' + new Date().toUTCString().slice(17,22) + ' UTC';
+    return;
+  }
+
+  // Load assets in parallel
+  const promises = SIG_ASSETS.map(async asset => {
+    try {
+      const data = await fetchAssetSignal(asset);
+      sigDataCache[asset] = data;
+      sessionStorage.setItem('nexus_sig_'+asset, JSON.stringify(data));
+      updateAssetTab(asset, data);
+      if (asset === sigActiveAsset) renderSigDetail(data);
+    } catch(e) {
+      console.error('Signal failed for', asset, e);
+      sigDataCache[asset] = null;
+      document.getElementById('sigsig-'+asset).textContent = 'ERR';
+    }
+  });
+
+  await Promise.all(promises);
+
+  btn.disabled = false;
+  btn.textContent = '↻ REFRESH ALL';
+  document.getElementById('sigLastUpdate').textContent = 'LAST UPDATE: ' + new Date().toUTCString().slice(17,22) + ' UTC';
+}
+
+function updateAssetTab(asset, data) {
+  const score = data.confluenceScore || 0;
+  const sig = data.signal || 'WATCH';
+  const col = SIG_COLORS[asset] || '#C9A84C';
+  const lbl = SIG_LABELS[sig] || SIG_LABELS['WATCH'];
+
+  document.getElementById('sigscore-'+asset).textContent = score;
+  document.getElementById('sigscore-'+asset).style.color = SCORE_COLORS(score);
+  document.getElementById('sigsig-'+asset).textContent = sig;
+  document.getElementById('sigsig-'+asset).style.background = lbl.bg;
+  document.getElementById('sigsig-'+asset).style.color = lbl.color;
+}
+
+function selectSigAsset(asset) {
+  sigActiveAsset = asset;
+  document.querySelectorAll('.sig-asset-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sigtab-'+asset).classList.add('active');
+
+  if (sigDataCache[asset]) {
+    renderSigDetail(sigDataCache[asset]);
+  } else {
+    document.getElementById('sigLeft').innerHTML = '<div class="sig-empty"><div class="sig-empty-icon">▲</div><div class="sig-empty-text">LOADING...</div></div>';
+    document.getElementById('sigRight').innerHTML = '<div class="sig-empty"><div class="sig-empty-icon">◈</div><div class="sig-empty-text">FETCHING SIGNAL...</div></div>';
+  }
+}
+
+function renderSigDetail(data) {
+  const score = data.confluenceScore || 0;
+  const sig = data.signal || 'WATCH';
+  const col = SCORE_COLORS(score);
+  const lbl = SIG_LABELS[sig] || SIG_LABELS['WATCH'];
+  const asset = data.asset;
+  const assetColor = SIG_COLORS[asset] || col;
+
+  // ── LEFT: Score dial + factors ──
+  const factorsHtml = (data.factors||[]).map(f => `
+    <div class="sig-factor-row">
+      <span class="sig-factor-name">${f.name}</span>
+      <div class="sig-factor-track"><div class="sig-factor-fill" style="width:${f.score}%;background:${f.color||col}"></div></div>
+      <span class="sig-factor-val" style="color:${f.color||col}">${f.score}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sigLeft').innerHTML = `
+    <div class="sig-dial-wrap">
+      <div class="sig-dial-outer" style="background:conic-gradient(${col} 0% ${score}%, var(--surface2) ${score}% 100%);padding:6px">
+        <div style="width:100%;height:100%;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center">
+          <div class="sig-dial-number" style="color:${col}">${score}</div>
+        </div>
+      </div>
+      <div class="sig-dial-label">CONFLUENCE SCORE / 100</div>
+      <div class="sig-signal-badge" style="background:${lbl.bg};color:${lbl.color}">● ${sig}</div>
+    </div>
+
+    <div class="sig-factors">
+      <div class="sig-factor-label">FACTOR BREAKDOWN</div>
+      ${factorsHtml}
+    </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:2px;padding:12px">
+      <div class="sig-section-title" style="margin-bottom:8px">POSITION GUIDE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:3px">TIMEFRAME</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text)">${data.timeframe||'—'}</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:3px">SIZE</div>
+          <div style="font-family:var(--mono);font-size:11px;color:${assetColor}">${data.positionSize||'—'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ── RIGHT: Zones + confluence + thesis + watch ──
+  const ez = data.entryZone || {};
+  const t1 = data.target1 || {};
+  const t2 = data.target2 || {};
+  const sl = data.stopLoss || {};
+
+  const confHtml = (data.confluence||[]).map(c => `
+    <div class="sig-conf-row">
+      <span class="sig-conf-factor">${c.factor}</span>
+      <div class="sig-conf-status">
+        <div class="sig-conf-dot" style="background:${c.aligned?'#00D4AA':'#E8394A'}"></div>
+        <span style="color:${c.aligned?'#00D4AA':'#E8394A'};font-size:10px">${c.aligned?'ALIGNED':'NEUTRAL'}</span>
+        <span style="color:var(--muted);font-size:10px">· ${c.note}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const watchHtml = (data.watchItems||[]).map(w => `
+    <div class="sig-watch-item">
+      <div class="sig-watch-icon">${w.icon}</div>
+      <div class="sig-watch-content">
+        <div class="sig-watch-title">${w.title}</div>
+        <div class="sig-watch-desc">${w.desc}</div>
+      </div>
+      <span class="sig-watch-urgency" style="background:${w.uc};color:${w.ut}">${w.urgency}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sigRight').innerHTML = `
+    <div>
+      <div class="sig-section-title">ENTRY / EXIT ZONES</div>
+      <div class="sig-zones">
+        <div class="sig-zone" style="border-top-color:#00D4AA">
+          <div class="sig-zone-label">ENTRY ZONE</div>
+          <div class="sig-zone-val" style="color:#00D4AA">${ez.low||'—'} – ${ez.high||'—'}</div>
+          <div class="sig-zone-note">${ez.note||''}</div>
+        </div>
+        <div class="sig-zone" style="border-top-color:${assetColor}">
+          <div class="sig-zone-label">TARGET 1</div>
+          <div class="sig-zone-val" style="color:${assetColor}">${t1.price||'—'} <span style="font-size:12px;color:var(--teal)">${t1.pct||''}</span></div>
+          <div class="sig-zone-note">${t1.note||''}</div>
+        </div>
+        <div class="sig-zone" style="border-top-color:#E8394A">
+          <div class="sig-zone-label">STOP LOSS</div>
+          <div class="sig-zone-val" style="color:#E8394A">${sl.price||'—'} <span style="font-size:12px;color:#E8394A">${sl.pct||''}</span></div>
+          <div class="sig-zone-note">${sl.note||''}</div>
+        </div>
+      </div>
+      ${t2.price ? `<div class="sig-zone" style="border:1px solid var(--border2);border-top:2px solid var(--purple);border-radius:2px;padding:10px 14px;margin-top:10px">
+        <div class="sig-zone-label">TARGET 2 (EXTENDED)</div>
+        <div class="sig-zone-val" style="color:var(--purple)">${t2.price} <span style="font-size:12px;color:var(--teal)">${t2.pct||''}</span></div>
+        <div class="sig-zone-note">${t2.note||''}</div>
+      </div>` : ''}
+    </div>
+
+    <div>
+      <div class="sig-section-title">CONFLUENCE ALIGNMENT</div>
+      <div class="sig-confluence">
+        <div class="sig-conf-head">
+          <span class="sig-conf-title">MACRO FACTORS vs ${asset}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:${col}">${score}/100</span>
+        </div>
+        <div class="sig-conf-body">${confHtml}</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sig-section-title">DIRECTIONAL THESIS</div>
+      <div class="sig-thesis">
+        <div class="sig-thesis-label">// ${asset} — ${sig}</div>
+        ${data.thesis||'—'}
+      </div>
+    </div>
+
+    <div>
+      <div class="sig-section-title">WHAT TO WATCH</div>
+      <div class="sig-watch">${watchHtml}</div>
+    </div>
+  `;
+}
+
+</script>
+</body>
+</html>
