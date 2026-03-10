@@ -2172,6 +2172,7 @@
 
     // ═══ GLOBAL STATE ═══
     const riskHighlights = { shortTerm: null, longTerm: null };
+    let searchQuery = '';
 
     // ═══ CLOCK ═══
     setInterval(() => {
@@ -2863,6 +2864,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const isSel = selNode && selNode.id === n.id;
           const isConn = selNode && selNode.connections.includes(n.id);
           const isHov = hovNode && hovNode.id === n.id;
+          const searchActive = searchQuery && searchQuery.length > 0;
+          const labelText = (n.fullLabel || n.label || '').toLowerCase();
+          const isMatch = searchActive && (labelText.includes(searchQuery) || String(n.id).toLowerCase().includes(searchQuery));
+          const isDimmed = searchActive && !isMatch;
           ctx.save();
           if (n.pulse || isSel) {
             const pr = r * (1 + 0.25 * Math.sin(Date.now() * 0.003));
@@ -2884,10 +2889,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             ctx.lineWidth = 1.8;
             ctx.stroke();
           } else {
-            ctx.fillStyle = col + '1F';
+            ctx.fillStyle = isDimmed ? col + '08' : col + '1F';
             ctx.fill();
-            ctx.strokeStyle = col + (isHov ? 'CC' : '66');
-            ctx.lineWidth = isHov ? 2.2 : 1.0;
+            ctx.strokeStyle = isDimmed ? col + '20' : col + (isHov ? 'CC' : '66');
+            ctx.lineWidth = isDimmed ? 0.6 : (isHov ? 2.2 : 1.0);
             ctx.stroke();
           }
           ctx.shadowBlur = 0;
@@ -2921,7 +2926,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           }
 
           const fs = Math.max(9.5, 12.5 * sc * a.s);
-          ctx.fillStyle = isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE'));
+          ctx.fillStyle = isDimmed ? col + '35' : (isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE')));
           ctx.font = `${fs}px 'DM Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           const lh = Math.max(11, 15 * sc), th = lines.length * lh;
           lines.forEach((l, i) => ctx.fillText(l, p.x, p.y - th / 2 + lh * (i + .5)));
@@ -2968,6 +2973,20 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     window.addEventListener('load', () => {
       try { updateRiskBar(); } catch (e) { console.error('Initial risk bar update failed', e); }
     });
+
+    // Wire up map search box
+    const mapSearchEl = document.getElementById('mapSearch');
+    if (mapSearchEl) {
+      mapSearchEl.addEventListener('input', function () {
+        searchQuery = this.value.trim().toLowerCase();
+      });
+      mapSearchEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          searchQuery = '';
+          this.value = '';
+        }
+      });
+    }
 
     // ═══ MAP INTERACTION ═══
     function nodeAt(mx, my) {
