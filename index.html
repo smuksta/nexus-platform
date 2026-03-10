@@ -2506,7 +2506,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'apra', x: 280, y: 185, label: 'APRA\nPOWERS', type: 'shadow', size: 24, connections: ['super_aus', 'cash_ban'] },
       { id: 'ai_silver', x: -110, y: -335, label: 'AI SILVER\nDEMAND', type: 'resource', size: 22, connections: ['silver', 'solar'] },
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
-    ];
+    ,
+  { id: 'trump_tariffs', x: 250, y: 80, label: 'TRUMP
+TARIFFS', type: 'policy', size: 30, connections: ['usd', 'inflation'] }
+];
 
     // Bring bubbles closer together (layout compactness)
     const LAYOUT_COMPACTNESS = 0.82;
