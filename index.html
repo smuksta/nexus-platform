@@ -2733,7 +2733,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
     resize(); window.addEventListener('resize', resize);
 
-    let vx = 0, vy = 0, sc = 1.15, tvx = 0, tvy = 0, tsc = 1.15;
+    let vx = 0, vy = 0, sc = 1.8, tvx = 0, tvy = 0, tsc = 1.8;
     let isDrag = false, lmx = 0, lmy = 0;
     let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
@@ -2946,7 +2946,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             sliced.forEach(l => lines.push(l));
           }
 
-          const fs = Math.max(9.5, 12.5 * sc * a.s);
+          // Slightly smaller label font so text stays comfortably inside the bubble
+          const fs = Math.max(6, 8 * sc * a.s);
           ctx.fillStyle = isDimmed ? col + '35' : (isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE')));
           ctx.font = `${fs}px 'DM Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           const lh = Math.max(11, 15 * sc), th = lines.length * lh;
@@ -2957,11 +2958,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       requestAnimationFrame(drawAll);
     }
-    // Auto-fit camera to include all nodes
+    // Auto-fit camera to frame the biggest bubbles first (you can always zoom out to see the rest)
     function autoFitCamera() {
       if (!nodes.length || !W || !H) return;
+      // Focus on the largest nodes by size so important bubbles are centred and zoomed in
+      const sorted = nodes.slice().sort((a, b) => (b.size || 0) - (a.size || 0));
+      const focus = sorted.slice(0, Math.max(4, Math.min(10, sorted.length)));
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      nodes.forEach(n => {
+      focus.forEach(n => {
         minX = Math.min(minX, n.x);
         maxX = Math.max(maxX, n.x);
         minY = Math.min(minY, n.y);
@@ -2969,10 +2973,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       });
       const spanX = maxX - minX || 1;
       const spanY = maxY - minY || 1;
-      const margin = 80;
+      const margin = 100;
       const scaleX = (W - margin * 2) / spanX;
       const scaleY = (H - margin * 2) / spanY;
-      tsc = Math.max(0.35, Math.min(1.6, Math.min(scaleX, scaleY)));
+      // Bias towards zooming in: never start below 1.0, cap reasonably high
+      tsc = Math.max(1.0, Math.min(2.2, Math.min(scaleX, scaleY)));
       tvx = -((minX + maxX) / 2);
       tvy = -((minY + maxY) / 2);
     }
