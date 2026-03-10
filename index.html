@@ -329,6 +329,86 @@
       backdrop-filter: blur(10px);
     }
 
+    /* ═══ RESPONSIVE (MOBILE) LAYOUT ═══ */
+    @media (max-width: 768px) {
+      html,
+      body {
+        height: 100%;
+        overflow: auto;
+      }
+
+      #header {
+        height: auto;
+        padding: 8px 12px;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: flex-start;
+      }
+
+      .header-logo {
+        flex: 1 1 100%;
+      }
+
+      .mode-switch {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        overflow-x: auto;
+      }
+
+      .mode-btn {
+        padding: 6px 10px;
+        font-size: 9px;
+      }
+
+      .header-stats {
+        order: 2;
+        gap: 8px;
+      }
+
+      .stat-item {
+        min-width: 90px;
+      }
+
+      .stat-label {
+        font-size: 8px;
+      }
+
+      .stat-value {
+        font-size: 11px;
+      }
+
+      .view {
+        top: 90px; /* header + alert bar */
+        bottom: 0;
+      }
+
+      #mapSearchContainer {
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      #mapSearch {
+        width: 80vw;
+        max-width: 360px;
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+
+      #mapLegend {
+        left: 10px;
+        bottom: 10px;
+        transform: none;
+      }
+
+      #mapControls {
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 10px;
+      }
+    }
+
     .tooltip-name {
       color: var(--gold2);
       font-weight: 500;
