@@ -312,6 +312,41 @@
       cursor: grabbing;
     }
 
+    /* Map search bar */
+    #mapSearch {
+      position: fixed;
+      top: 76px;
+      right: 20px;
+      width: 280px;
+      background: rgba(6, 12, 18, 0.95);
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      padding: 10px 14px;
+      z-index: 300;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+
+    #mapSearchInput {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      outline: none;
+      letter-spacing: 0.5px;
+    }
+
+    #mapSearchInput::placeholder {
+      color: var(--muted);
+    }
+
+    #mapSearch.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(201, 168, 76, 0.2);
+    }
+
     /* Map tooltip */
     #mapTooltip {
       position: fixed;
@@ -1866,6 +1901,11 @@
   <div class="view" id="mapView">
     <canvas id="mapCanvas"></canvas>
 
+    <!-- Map search bar -->
+    <div id="mapSearch">
+      <input type="text" id="mapSearchInput" placeholder="Search nodes..." autocomplete="off">
+    </div>
+
     <div id="mapTooltip">
       <div class="tooltip-name" id="ttName"></div>
       <div class="tooltip-type" id="ttType"></div>
@@ -2613,34 +2653,39 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (!toRemove.has(idx)) newNodes.push(n);
         else if (anim[n.id]) delete anim[n.id];
       });
-      nodes = newNodes;
+      nodes.length = 0;
+      nodes.push(...newNodes);
     }
 
     // Build index and normalise connections (graph integrity)
-    const nodeIndex = new Map();
-    nodes.forEach(n => {
-      if (nodeIndex.has(n.id)) {
-        console.warn('Duplicate node id detected:', n.id);
-      }
-      nodeIndex.set(n.id, n);
-      // Deduplicate and clean self-links
-      n.connections = Array.from(new Set((n.connections || []).filter(cid => cid && cid !== n.id)));
-    });
-
-    // Ensure connections are symmetric and log missing targets
-    nodes.forEach(n => {
-      (n.connections || []).forEach(cid => {
-        const target = nodeIndex.get(cid);
-        if (!target) {
-          console.warn('Missing target for connection', n.id, '->', cid);
-          return;
+    let nodeIndex = new Map();
+    
+    function rebuildNodeIndex() {
+      nodeIndex.clear();
+      nodes.forEach(n => {
+        if (nodeIndex.has(n.id)) {
+          console.warn('Duplicate node id detected:', n.id);
         }
-        if (!Array.isArray(target.connections)) target.connections = [];
-        if (!target.connections.includes(n.id)) {
-          target.connections.push(n.id);
-        }
+        nodeIndex.set(n.id, n);
+        // Deduplicate and clean self-links
+        n.connections = Array.from(new Set((n.connections || []).filter(cid => cid && cid !== n.id)));
       });
-    });
+
+      // Ensure connections are symmetric and log missing targets
+      nodes.forEach(n => {
+        (n.connections || []).forEach(cid => {
+          const target = nodeIndex.get(cid);
+          if (!target) {
+            console.warn('Missing target for connection', n.id, '->', cid);
+            return;
+          }
+          if (!Array.isArray(target.connections)) target.connections = [];
+          if (!target.connections.includes(n.id)) {
+            target.connections.push(n.id);
+          }
+        });
+      });
+    }
 
     function saveDynamicNodes() {
       if (typeof window === 'undefined') return;
@@ -2715,6 +2760,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
     let currentPanelNode = null;
+    let searchQuery = '';
+    let searchMatchedNodes = [];
 
     const anim = {};
     nodes.forEach(n => { anim[n.id] = { s: 0 }; setTimeout(() => { anim[n.id].s = 1; }, Math.random() * 600 + 100); });
@@ -2787,10 +2834,25 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         anim[id] = { s: 0 };
         setTimeout(() => { anim[id].s = 1; }, 300 + idx * 120);
       });
+      rebuildNodeIndex();
       saveDynamicNodes();
     }
 
     function npos(n) { return { x: W / 2 + (n.x + vx) * sc, y: H / 2 + (n.y + vy) * sc }; }
+
+    function performMapSearch(query) {
+      searchQuery = query.toLowerCase().trim();
+      searchMatchedNodes = [];
+      
+      if (searchQuery) {
+        nodes.forEach(node => {
+          const searchText = (node.fullLabel || node.label || '').toLowerCase();
+          if (searchText.includes(searchQuery)) {
+            searchMatchedNodes.push(node.id);
+          }
+        });
+      }
+    }
 
     function drawAll() {
       ctx.clearRect(0, 0, W, H);
@@ -2809,6 +2871,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (stVis) urgentVisibleIds.add(stVis);
         if (ltVis) urgentVisibleIds.add(ltVis);
       }
+      
       const isVisibleByFilter = n => {
         if (!typeFilter) return true;
         if (typeFilter === 'urgent') {
@@ -2817,6 +2880,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         }
         return n.type === typeFilter;
       };
+
+      const isSearchMatch = n => !searchQuery || searchMatchedNodes.includes(n.id);
+      const shouldDim = n => searchQuery && !isSearchMatch(n);
 
       // Edges
       nodes.forEach(n => {
@@ -2830,8 +2896,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const pn = npos(n), pt = npos(t);
           const isHl = selNode && ((selNode.id === n.id && selNode.connections.includes(cid)) || (selNode.id === cid && selNode.connections.includes(n.id)));
           const dim = selNode && !isHl;
+          const searchDim = shouldDim(n) || shouldDim(t);
           const col = isHl ? (typeColors[n.type] || '#FFF') : '#1A2D42';
-          const alpha = dim ? '18' : isHl ? 'BB' : '50';
+          let alpha = dim ? '18' : isHl ? 'BB' : '50';
+          if (searchDim) alpha = '18';
           ctx.save();
           ctx.beginPath();
           const mx = (pn.x + pt.x) / 2 + (pt.y - pn.y) * 0.08, my = (pn.y + pt.y) / 2 - (pt.x - pn.x) * 0.08;
@@ -2862,14 +2930,27 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const isSel = selNode && selNode.id === n.id;
           const isConn = selNode && selNode.connections.includes(n.id);
           const isHov = hovNode && hovNode.id === n.id;
+          const isMatch = isSearchMatch(n);
+          const searchDim = shouldDim(n);
+          
           ctx.save();
           if (n.pulse || isSel) {
             const pr = r * (1 + 0.25 * Math.sin(Date.now() * 0.003));
             ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
             ctx.strokeStyle = col + '40'; ctx.lineWidth = 2.2; ctx.stroke();
           }
-          if (isSel || isHov) { ctx.shadowColor = col; ctx.shadowBlur = 24 * sc; }
+          
+          // Highlighted search matches
+          if (searchQuery && isMatch && !isSel) {
+            ctx.shadowColor = col; 
+            ctx.shadowBlur = 16 * sc;
+          } else if (isSel || isHov) { 
+            ctx.shadowColor = col; 
+            ctx.shadowBlur = 24 * sc; 
+          }
+          
           ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          
           if (isSel) {
             ctx.fillStyle = col + '3A';
             ctx.fill();
@@ -2883,10 +2964,17 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             ctx.lineWidth = 1.8;
             ctx.stroke();
           } else {
-            ctx.fillStyle = col + '1F';
+            const baseAlpha = searchDim ? '0A' : '1F';
+            ctx.fillStyle = col + baseAlpha;
             ctx.fill();
-            ctx.strokeStyle = col + (isHov ? 'CC' : '66');
-            ctx.lineWidth = isHov ? 2.2 : 1.0;
+            
+            let strokeAlpha = '66';
+            if (searchQuery && isMatch) strokeAlpha = 'DD';
+            else if (searchDim) strokeAlpha = '33';
+            else if (isHov) strokeAlpha = 'CC';
+            
+            ctx.strokeStyle = col + strokeAlpha;
+            ctx.lineWidth = (searchQuery && isMatch) ? 2.4 : (isHov ? 2.2 : 1.0);
             ctx.stroke();
           }
           ctx.shadowBlur = 0;
@@ -2920,7 +3008,21 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           }
 
           const fs = Math.max(9.5, 12.5 * sc * a.s);
-          ctx.fillStyle = isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE'));
+          
+          let textColor;
+          if (isSel) {
+            textColor = '#FFFFFF';
+          } else if (isConn) {
+            textColor = col + 'F0';
+          } else if (searchQuery && isMatch) {
+            textColor = col + 'FF';
+          } else if (searchDim) {
+            textColor = col + '66';
+          } else {
+            textColor = col + (selNode ? 'AA' : 'EE');
+          }
+          
+          ctx.fillStyle = textColor;
           ctx.font = `${fs}px 'DM Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           const lh = Math.max(11, 15 * sc), th = lines.length * lh;
           lines.forEach((l, i) => ctx.fillText(l, p.x, p.y - th / 2 + lh * (i + .5)));
@@ -2930,6 +3032,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       requestAnimationFrame(drawAll);
     }
+    
     // Auto-fit camera to include all nodes
     function autoFitCamera() {
       if (!nodes.length || !W || !H) return;
@@ -2950,14 +3053,36 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       tvy = -((minY + maxY) / 2);
     }
 
+    // ═══ SEARCH FUNCTIONALITY ═══
+    const mapSearchEl = document.getElementById('mapSearch');
+    const mapSearchInput = document.getElementById('mapSearchInput');
+    
+    mapSearchInput.addEventListener('input', (e) => {
+      const query = e.target.value;
+      performMapSearch(query);
+      mapSearchEl.classList.toggle('active', query.length > 0);
+    });
+    
+    // Clear search on Escape key
+    mapSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        mapSearchInput.value = '';
+        performMapSearch('');
+        mapSearchEl.classList.remove('active');
+        mapSearchInput.blur();
+      }
+    });
+
     // Load shared dynamic nodes, then settle layout, start the render loop, and run an initial risk scan
     loadDynamicNodesFromServer().then(() => {
+      rebuildNodeIndex();
       relaxLayout(6, 0.25);
       autoFitCamera();
       drawAll();
       // Kick off the alert scan once nodes (including any shared ones) are ready
       scanMapRisk();
     }).catch(() => {
+      rebuildNodeIndex();
       autoFitCamera();
       drawAll();
       scanMapRisk();
@@ -3038,6 +3163,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           r.classList.toggle('active', rt === 'all');
         });
       }
+      // Clear search
+      mapSearchInput.value = '';
+      performMapSearch('');
+      mapSearchEl.classList.remove('active');
     }
 
     function toggleShadow() {
@@ -3062,7 +3191,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         size: 26,
         connections: ['gold', 'usd', 'aus_rba']
       };
-      nodes.push(nn); anim[nid] = { s: 0 };
+      nodes.push(nn); 
+      anim[nid] = { s: 0 };
+      rebuildNodeIndex();
       saveDynamicNodes();
       setTimeout(() => { anim[nid].s = 1; openPanel(nn); }, 300);
     }
