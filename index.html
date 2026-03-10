@@ -1864,6 +1864,10 @@
 
   <!-- ═══ MAP VIEW ═══ -->
   <div class="view" id="mapView">
+    <div id="mapSearchContainer" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100;">
+      <input type="text" id="mapSearch" placeholder="Search nodes..." style="background: rgba(3, 6, 10, 0.9); border: 1px solid #C9A84C; color: #C9A84C; padding: 8px 16px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 14px; width: 300px; outline: none;">
+    </div>
+    
     <canvas id="mapCanvas"></canvas>
 
     <div id="mapTooltip">
@@ -1909,9 +1913,7 @@
       <div class="ctrl-sep"></div>
       <span class="ctrl-hint">SCROLL ZOOM · DRAG PAN · CLICK ANALYSE</span>
     </div>
-  </div>
-
-  <!-- ═══ INTEL VIEW ═══ -->
+  </div><!-- ═══ INTEL VIEW ═══ -->
   <div class="view hidden" id="intelView">
     <div class="intel-header">
       <div class="intel-context">
