@@ -1158,22 +1158,14 @@
       border: none;
       color: var(--muted2);
       cursor: pointer;
-      font-size: 18px;
+      font-size: 16px;
       font-family: var(--mono);
       transition: color 0.2s;
       line-height: 1;
-      padding: 4px 6px;
     }
 
     .sp-close:hover {
       color: var(--text);
-    }
-
-    @media (max-width: 768px) {
-      .sp-close {
-        font-size: 22px;
-        padding: 6px 10px;
-      }
     }
 
     .sp-cat {
@@ -2826,8 +2818,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
     let currentPanelNode = null;
-    // Touch interaction state (to distinguish tap vs drag)
-    let touchTapNode = null, touchStartX = 0, touchStartY = 0, touchMoved = false;
 
     const anim = {};
     nodes.forEach(n => { anim[n.id] = { s: 0 }; setTimeout(() => { anim[n.id].s = 1; }, Math.random() * 600 + 100); });
@@ -3153,53 +3143,15 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
     let ltd = 0;
     canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        const t = e.touches[0];
-        touchStartX = t.clientX;
-        touchStartY = t.clientY;
-        touchMoved = false;
-        touchTapNode = nodeAt(t.clientX, t.clientY - 56);
-        isDrag = true;
-        lmx = t.clientX;
-        lmy = t.clientY;
-      }
-      if (e.touches.length === 2) {
-        ltd = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-      }
+      if (e.touches.length === 1) { const t = e.touches[0]; const n = nodeAt(t.clientX, t.clientY - 56); if (n) openPanel(n); else { isDrag = true; lmx = t.clientX; lmy = t.clientY; } }
+      if (e.touches.length === 2) ltd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     });
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
-      if (e.touches.length === 1 && isDrag) {
-        const t = e.touches[0];
-        const dx = t.clientX - touchStartX;
-        const dy = t.clientY - touchStartY;
-        if (!touchMoved && (dx * dx + dy * dy) > 16) { // ~4px threshold
-          touchMoved = true;
-        }
-        tvx += (t.clientX - lmx) / sc;
-        tvy += (t.clientY - lmy) / sc;
-        lmx = t.clientX;
-        lmy = t.clientY;
-      }
-      if (e.touches.length === 2) {
-        const d = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        tsc = Math.max(.25, Math.min(3, tsc * (d / ltd)));
-        ltd = d;
-      }
+      if (e.touches.length === 1 && isDrag) { tvx += (e.touches[0].clientX - lmx) / sc; tvy += (e.touches[0].clientY - lmy) / sc; lmx = e.touches[0].clientX; lmy = e.touches[0].clientY; }
+      if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); tsc = Math.max(.25, Math.min(3, tsc * (d / ltd))); ltd = d; }
     }, { passive: false });
-    canvas.addEventListener('touchend', e => {
-      if (!touchMoved && touchTapNode) {
-        openPanel(touchTapNode);
-      }
-      isDrag = false;
-      touchTapNode = null;
-    });
+    canvas.addEventListener('touchend', () => isDrag = false);
 
     function resetMapView() {
       tvx = 0; tvy = 0; tsc = 0.9;
