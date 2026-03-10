@@ -2481,11 +2481,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'israel', x: 140, y: -100, label: 'ISRAEL\nCONFLICT', type: 'geo', size: 30, connections: ['hormuz', 'us_mil', 'gold'] },
       { id: 'us_mil', x: 185, y: 50, label: 'US MILITARY\nACTION', type: 'geo', size: 34, connections: ['hormuz', 'israel', 'petrodollar', 'usd'] },
       { id: 'russia', x: -235, y: 40, label: 'RUSSIA\nUKRAINE', type: 'geo', size: 28, connections: ['iran', 'brics', 'gold', 'eu_energy'] },
-      { id: 'usd', x: 110, y: 165, label: 'USD\nWEAKENING', type: 'financial', size: 36, connections: ['gold', 'petrodollar', 'aud', 'fed'] },
+      { id: 'usd', x: 110, y: 165, label: 'USD\nWEAKENING', type: 'financial', size: 36, connections: ['gold', 'petrodollar', 'aud', 'fed', 'trump_tariffs'] },
       { id: 'fed', x: 235, y: 140, label: 'FED\nPARALYSIS', type: 'financial', size: 28, connections: ['usd', 'inflation', 'stocks'] },
       { id: 'petrodollar', x: -45, y: 175, label: 'PETRODOLLAR\nEND', type: 'shadow', size: 32, connections: ['usd', 'iran', 'brics', 'gold'] },
       { id: 'brics', x: -175, y: 140, label: 'BRICS\nCURRENCY', type: 'shadow', size: 30, connections: ['petrodollar', 'russia', 'gold', 'iran'] },
-      { id: 'inflation', x: 200, y: -45, label: 'STAGFLATION\nRISK', type: 'financial', size: 30, connections: ['fed', 'oil', 'aus_rba', 'stocks'] },
+      { id: 'inflation', x: 200, y: -45, label: 'STAGFLATION\nRISK', type: 'financial', size: 30, connections: ['fed', 'oil', 'aus_rba', 'stocks', 'trump_tariffs'] },
       { id: 'stocks', x: 280, y: -20, label: 'MARKETS\nDUMPING', type: 'financial', size: 28, connections: ['inflation', 'fed', 'gold'] },
       { id: 'oil', x: -90, y: -140, label: 'OIL PRICE\nSPIKE', type: 'resource', size: 40, connections: ['hormuz', 'aus_fuel', 'inflation', 'gold', 'aus_const'] },
       { id: 'gold', x: 35, y: -175, label: 'GOLD\nATH', type: 'resource', size: 38, connections: ['usd', 'oil', 'israel', 'cb_gold', 'great_taking'] },
@@ -2506,6 +2506,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'apra', x: 280, y: 185, label: 'APRA\nPOWERS', type: 'shadow', size: 24, connections: ['super_aus', 'cash_ban'] },
       { id: 'ai_silver', x: -110, y: -335, label: 'AI SILVER\nDEMAND', type: 'resource', size: 22, connections: ['silver', 'solar'] },
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
+      { id: 'trump_tariffs', x: 340, y: 120, label: 'TRUMP\nTARIFFS', type: 'policy', size: 34, connections: ['usd', 'inflation'] }
     ];
 
     // Bring bubbles closer together (layout compactness)
