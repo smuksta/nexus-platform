@@ -312,41 +312,6 @@
       cursor: grabbing;
     }
 
-    /* Map search bar */
-    #mapSearch {
-      position: fixed;
-      top: 76px;
-      right: 20px;
-      width: 280px;
-      background: rgba(6, 12, 18, 0.95);
-      border: 1px solid var(--border2);
-      border-radius: 3px;
-      padding: 10px 14px;
-      z-index: 300;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s;
-    }
-
-    #mapSearchInput {
-      width: 100%;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      outline: none;
-      letter-spacing: 0.5px;
-    }
-
-    #mapSearchInput::placeholder {
-      color: var(--muted);
-    }
-
-    #mapSearch.active {
-      border-color: var(--gold);
-      box-shadow: 0 0 12px rgba(201, 168, 76, 0.2);
-    }
-
     /* Map tooltip */
     #mapTooltip {
       position: fixed;
@@ -1080,7 +1045,771 @@
       display: flex;
     }
 
-    /* ═══ SLIDE PANEL (map detail) ═
+    /* ═══ SLIDE PANEL (map detail) ═══ */
+    #slidePanel {
+      position: fixed;
+      top: 56px;
+      right: 0;
+      width: 360px;
+      height: calc(100vh - 56px);
+      background: rgba(3, 6, 10, 0.98);
+      border-left: 1px solid var(--border2);
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(20px);
+    }
+
+    #slidePanel.open {
+      transform: translateX(0);
+    }
+
+    .sp-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+
+    .sp-close {
+      float: right;
+      background: none;
+      border: none;
+      color: var(--muted2);
+      cursor: pointer;
+      font-size: 16px;
+      font-family: var(--mono);
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .sp-close:hover {
+      color: var(--text);
+    }
+
+    .sp-cat {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .sp-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .sp-meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+    }
+
+    /* Deep dive button */
+    .deep-dive-btn {
+      margin: 14px 20px 0;
+      width: calc(100% - 40px);
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      padding: 10px;
+      font-family: var(--orb);
+      font-size: 10px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .deep-dive-btn:hover {
+      background: var(--gold2);
+    }
+
+    .sp-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+
+    .sp-tab {
+      flex: 1;
+      padding: 9px 4px;
+      background: none;
+      border: none;
+      color: var(--muted2);
+      font-family: var(--orb);
+      font-size: 8px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+      text-transform: uppercase;
+    }
+
+    .sp-tab.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    .sp-tab:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .sp-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+
+    .sp-body::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .sp-body::-webkit-scrollbar-thumb {
+      background: var(--border2);
+    }
+
+    .sp-block {
+      background: var(--surface2);
+      border-left: 2px solid var(--border2);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border-radius: 0 3px 3px 0;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #A8BEC8;
+    }
+
+    .sp-block-label {
+      font-family: var(--orb);
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .sp-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      gap: 12px;
+    }
+
+    .sp-spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .sp-loading-text {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      letter-spacing: 1px;
+    }
+
+    .conn-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .conn-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 5px 10px;
+      border-radius: 2px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      transition: all 0.15s;
+    }
+
+    .conn-chip:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .conn-chip-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Fade in animation */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .fade-up:nth-child(1) {
+      animation-delay: 0.05s
+    }
+
+    .fade-up:nth-child(2) {
+      animation-delay: 0.1s
+    }
+
+    .fade-up:nth-child(3) {
+      animation-delay: 0.15s
+    }
+
+    .fade-up:nth-child(4) {
+      animation-delay: 0.2s
+    }
+
+    .fade-up:nth-child(5) {
+      animation-delay: 0.25s
+    }
+
+    .fade-up:nth-child(6) {
+      animation-delay: 0.3s
+    }
+
+    /* ═══ SIGNALS MODE ═══ */
+    #signalsView {
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg2);
+      overflow: hidden;
+    }
+
+    .signals-header {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .signals-title {
+      font-family: var(--orb);
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: var(--teal);
+    }
+
+    .signals-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .sig-overview {
+      padding: 10px 28px 6px;
+      border-bottom: 1px solid var(--border2);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .sig-overview-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      padding: 8px 10px;
+      min-height: 58px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sig-overview-title {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted2);
+      margin-bottom: 2px;
+    }
+
+    .sig-overview-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0, 212, 170, 0.09);
+      color: var(--text);
+      margin: 1px 4px 1px 0;
+      white-space: nowrap;
+    }
+
+    .sig-overview-pill span {
+      margin-right: 4px;
+    }
+
+    .sig-overview-empty {
+      font-size: 9px;
+      color: var(--muted2);
+    }
+
+    .signals-refresh {
+      background: rgba(0, 212, 170, 0.08);
+      border: 1px solid rgba(0, 212, 170, 0.2);
+      color: var(--teal);
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      padding: 7px 18px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+
+    .signals-refresh:hover {
+      background: rgba(0, 212, 170, 0.15);
+    }
+
+    .signals-refresh:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .signals-ticker {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+
+    .signals-ticker::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sig-asset-tab {
+      flex-shrink: 0;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 100px;
+    }
+
+    .sig-asset-tab:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .sig-asset-tab.active {
+      border-bottom-color: var(--gold);
+    }
+
+    .sig-asset-name {
+      font-family: var(--orb);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted2);
+    }
+
+    .sig-asset-tab.active .sig-asset-name {
+      color: var(--gold2);
+    }
+
+    .sig-asset-score {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .sig-asset-signal {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 1px;
+      padding: 2px 6px;
+      border-radius: 1px;
+    }
+
+    .signals-body {
+      flex: 1;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0;
+    }
+
+    .sig-left {
+      border-right: 1px solid var(--border2);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sig-left::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .sig-left::-webkit-scrollbar-thumb {
+      background: var(--border2);
+    }
+
+    .sig-dial-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0 10px;
+    }
+
+    .sig-dial-outer {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sig-dial-number {
+      font-family: var(--orb);
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sig-dial-label {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--muted2);
+      margin-top: 10px;
+    }
+
+    .sig-signal-badge {
+      font-family: var(--orb);
+      font-size: 11px;
+      letter-spacing: 3px;
+      padding: 6px 16px;
+      border-radius: 2px;
+      margin-top: 8px;
+    }
+
+    .sig-factors {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sig-factor-label {
+      font-family: var(--orb);
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .sig-factor-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sig-factor-name {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      width: 90px;
+      flex-shrink: 0;
+    }
+
+    .sig-factor-track {
+      flex: 1;
+      height: 5px;
+      background: var(--border2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .sig-factor-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sig-factor-val {
+      font-family: var(--mono);
+      font-size: 10px;
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .sig-right {
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sig-right::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .sig-right::-webkit-scrollbar-thumb {
+      background: var(--border2);
+    }
+
+    .sig-zones {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .sig-zone {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 14px;
+      border-radius: 2px;
+      border-top-width: 2px;
+    }
+
+    .sig-zone-label {
+      font-family: var(--orb);
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .sig-zone-val {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .sig-zone-note {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      line-height: 1.4;
+    }
+
+    .sig-confluence {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .sig-conf-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sig-conf-title {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted2);
+    }
+
+    .sig-conf-body {
+      padding: 14px;
+    }
+
+    .sig-conf-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .sig-conf-row:last-child {
+      border: none;
+    }
+
+    .sig-conf-factor {
+      color: var(--muted2);
+    }
+
+    .sig-conf-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sig-conf-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .sig-thesis {
+      background: var(--surface2);
+      border-left: 2px solid var(--gold);
+      padding: 12px 14px;
+      border-radius: 0 3px 3px 0;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #7A9AAA;
+    }
+
+    .sig-thesis-label {
+      font-family: var(--orb);
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    .sig-watch {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sig-watch-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+    }
+
+    .sig-watch-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .sig-watch-content {
+      flex: 1;
+    }
+
+    .sig-watch-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .sig-watch-desc {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      line-height: 1.4;
+    }
+
+    .sig-watch-urgency {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 2px 7px;
+      border-radius: 1px;
+      align-self: center;
+      flex-shrink: 0;
+    }
+
+    .sig-section-title {
+      font-family: var(--orb);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .sig-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 6, 10, 0.92);
+      z-index: 10;
+    }
+
+    .sig-spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .sig-load-text {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted2);
+      letter-spacing: 2px;
+    }
+
+    .sig-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+    }
+
+    .sig-empty-icon {
+      font-family: var(--orb);
+      font-size: 48px;
+      opacity: 0.1;
+      color: var(--teal);
+    }
+
+    .sig-empty-text {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted2);
+    }
+  </style>
 </head>
 
 <body>
@@ -1136,11 +1865,6 @@
   <!-- ═══ MAP VIEW ═══ -->
   <div class="view" id="mapView">
     <canvas id="mapCanvas"></canvas>
-
-    <!-- Map search bar -->
-    <div id="mapSearch">
-      <input type="text" id="mapSearchInput" placeholder="Search nodes..." autocomplete="off">
-    </div>
 
     <div id="mapTooltip">
       <div class="tooltip-name" id="ttName"></div>
@@ -1757,11 +2481,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'israel', x: 140, y: -100, label: 'ISRAEL\nCONFLICT', type: 'geo', size: 30, connections: ['hormuz', 'us_mil', 'gold'] },
       { id: 'us_mil', x: 185, y: 50, label: 'US MILITARY\nACTION', type: 'geo', size: 34, connections: ['hormuz', 'israel', 'petrodollar', 'usd'] },
       { id: 'russia', x: -235, y: 40, label: 'RUSSIA\nUKRAINE', type: 'geo', size: 28, connections: ['iran', 'brics', 'gold', 'eu_energy'] },
-      { id: 'usd', x: 110, y: 165, label: 'USD\nWEAKENING', type: 'financial', size: 36, connections: ['gold', 'petrodollar', 'aud', 'fed', 'trump_tariffs'] },
+      { id: 'usd', x: 110, y: 165, label: 'USD\nWEAKENING', type: 'financial', size: 36, connections: ['gold', 'petrodollar', 'aud', 'fed'] },
       { id: 'fed', x: 235, y: 140, label: 'FED\nPARALYSIS', type: 'financial', size: 28, connections: ['usd', 'inflation', 'stocks'] },
       { id: 'petrodollar', x: -45, y: 175, label: 'PETRODOLLAR\nEND', type: 'shadow', size: 32, connections: ['usd', 'iran', 'brics', 'gold'] },
       { id: 'brics', x: -175, y: 140, label: 'BRICS\nCURRENCY', type: 'shadow', size: 30, connections: ['petrodollar', 'russia', 'gold', 'iran'] },
-      { id: 'inflation', x: 200, y: -45, label: 'STAGFLATION\nRISK', type: 'financial', size: 30, connections: ['fed', 'oil', 'aus_rba', 'stocks', 'trump_tariffs'] },
+      { id: 'inflation', x: 200, y: -45, label: 'STAGFLATION\nRISK', type: 'financial', size: 30, connections: ['fed', 'oil', 'aus_rba', 'stocks'] },
       { id: 'stocks', x: 280, y: -20, label: 'MARKETS\nDUMPING', type: 'financial', size: 28, connections: ['inflation', 'fed', 'gold'] },
       { id: 'oil', x: -90, y: -140, label: 'OIL PRICE\nSPIKE', type: 'resource', size: 40, connections: ['hormuz', 'aus_fuel', 'inflation', 'gold', 'aus_const'] },
       { id: 'gold', x: 35, y: -175, label: 'GOLD\nATH', type: 'resource', size: 38, connections: ['usd', 'oil', 'israel', 'cb_gold', 'great_taking'] },
@@ -1782,7 +2506,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'apra', x: 280, y: 185, label: 'APRA\nPOWERS', type: 'shadow', size: 24, connections: ['super_aus', 'cash_ban'] },
       { id: 'ai_silver', x: -110, y: -335, label: 'AI SILVER\nDEMAND', type: 'resource', size: 22, connections: ['silver', 'solar'] },
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
-      { id: 'trump_tariffs', x: 340, y: 120, label: 'TRUMP\nTARIFFS', type: 'policy', size: 34, connections: ['usd', 'inflation'] }
     ];
 
     // Bring bubbles closer together (layout compactness)
@@ -1889,39 +2612,34 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (!toRemove.has(idx)) newNodes.push(n);
         else if (anim[n.id]) delete anim[n.id];
       });
-      nodes.length = 0;
-      nodes.push(...newNodes);
+      nodes = newNodes;
     }
 
     // Build index and normalise connections (graph integrity)
-    let nodeIndex = new Map();
-    
-    function rebuildNodeIndex() {
-      nodeIndex.clear();
-      nodes.forEach(n => {
-        if (nodeIndex.has(n.id)) {
-          console.warn('Duplicate node id detected:', n.id);
-        }
-        nodeIndex.set(n.id, n);
-        // Deduplicate and clean self-links
-        n.connections = Array.from(new Set((n.connections || []).filter(cid => cid && cid !== n.id)));
-      });
+    const nodeIndex = new Map();
+    nodes.forEach(n => {
+      if (nodeIndex.has(n.id)) {
+        console.warn('Duplicate node id detected:', n.id);
+      }
+      nodeIndex.set(n.id, n);
+      // Deduplicate and clean self-links
+      n.connections = Array.from(new Set((n.connections || []).filter(cid => cid && cid !== n.id)));
+    });
 
-      // Ensure connections are symmetric and log missing targets
-      nodes.forEach(n => {
-        (n.connections || []).forEach(cid => {
-          const target = nodeIndex.get(cid);
-          if (!target) {
-            console.warn('Missing target for connection', n.id, '->', cid);
-            return;
-          }
-          if (!Array.isArray(target.connections)) target.connections = [];
-          if (!target.connections.includes(n.id)) {
-            target.connections.push(n.id);
-          }
-        });
+    // Ensure connections are symmetric and log missing targets
+    nodes.forEach(n => {
+      (n.connections || []).forEach(cid => {
+        const target = nodeIndex.get(cid);
+        if (!target) {
+          console.warn('Missing target for connection', n.id, '->', cid);
+          return;
+        }
+        if (!Array.isArray(target.connections)) target.connections = [];
+        if (!target.connections.includes(n.id)) {
+          target.connections.push(n.id);
+        }
       });
-    }
+    });
 
     function saveDynamicNodes() {
       if (typeof window === 'undefined') return;
@@ -1996,8 +2714,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
     let currentPanelNode = null;
-    let searchQuery = '';
-    let searchMatchedNodes = [];
 
     const anim = {};
     nodes.forEach(n => { anim[n.id] = { s: 0 }; setTimeout(() => { anim[n.id].s = 1; }, Math.random() * 600 + 100); });
@@ -2070,25 +2786,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         anim[id] = { s: 0 };
         setTimeout(() => { anim[id].s = 1; }, 300 + idx * 120);
       });
-      rebuildNodeIndex();
       saveDynamicNodes();
     }
 
     function npos(n) { return { x: W / 2 + (n.x + vx) * sc, y: H / 2 + (n.y + vy) * sc }; }
-
-    function performMapSearch(query) {
-      searchQuery = query.toLowerCase().trim();
-      searchMatchedNodes = [];
-      
-      if (searchQuery) {
-        nodes.forEach(node => {
-          const searchText = (node.fullLabel || node.label || '').toLowerCase();
-          if (searchText.includes(searchQuery)) {
-            searchMatchedNodes.push(node.id);
-          }
-        });
-      }
-    }
 
     function drawAll() {
       ctx.clearRect(0, 0, W, H);
@@ -2107,7 +2808,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (stVis) urgentVisibleIds.add(stVis);
         if (ltVis) urgentVisibleIds.add(ltVis);
       }
-      
       const isVisibleByFilter = n => {
         if (!typeFilter) return true;
         if (typeFilter === 'urgent') {
@@ -2116,9 +2816,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         }
         return n.type === typeFilter;
       };
-
-      const isSearchMatch = n => !searchQuery || searchMatchedNodes.includes(n.id);
-      const shouldDim = n => searchQuery && !isSearchMatch(n);
 
       // Edges
       nodes.forEach(n => {
@@ -2132,10 +2829,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const pn = npos(n), pt = npos(t);
           const isHl = selNode && ((selNode.id === n.id && selNode.connections.includes(cid)) || (selNode.id === cid && selNode.connections.includes(n.id)));
           const dim = selNode && !isHl;
-          const searchDim = shouldDim(n) || shouldDim(t);
           const col = isHl ? (typeColors[n.type] || '#FFF') : '#1A2D42';
-          let alpha = dim ? '18' : isHl ? 'BB' : '50';
-          if (searchDim) alpha = '18';
+          const alpha = dim ? '18' : isHl ? 'BB' : '50';
           ctx.save();
           ctx.beginPath();
           const mx = (pn.x + pt.x) / 2 + (pt.y - pn.y) * 0.08, my = (pn.y + pt.y) / 2 - (pt.x - pn.x) * 0.08;
@@ -2166,27 +2861,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const isSel = selNode && selNode.id === n.id;
           const isConn = selNode && selNode.connections.includes(n.id);
           const isHov = hovNode && hovNode.id === n.id;
-          const isMatch = isSearchMatch(n);
-          const searchDim = shouldDim(n);
-          
           ctx.save();
           if (n.pulse || isSel) {
             const pr = r * (1 + 0.25 * Math.sin(Date.now() * 0.003));
             ctx.beginPath(); ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
             ctx.strokeStyle = col + '40'; ctx.lineWidth = 2.2; ctx.stroke();
           }
-          
-          // Highlighted search matches
-          if (searchQuery && isMatch && !isSel) {
-            ctx.shadowColor = col; 
-            ctx.shadowBlur = 16 * sc;
-          } else if (isSel || isHov) { 
-            ctx.shadowColor = col; 
-            ctx.shadowBlur = 24 * sc; 
-          }
-          
+          if (isSel || isHov) { ctx.shadowColor = col; ctx.shadowBlur = 24 * sc; }
           ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          
           if (isSel) {
             ctx.fillStyle = col + '3A';
             ctx.fill();
@@ -2200,17 +2882,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
             ctx.lineWidth = 1.8;
             ctx.stroke();
           } else {
-            const baseAlpha = searchDim ? '0A' : '1F';
-            ctx.fillStyle = col + baseAlpha;
+            ctx.fillStyle = col + '1F';
             ctx.fill();
-            
-            let strokeAlpha = '66';
-            if (searchQuery && isMatch) strokeAlpha = 'DD';
-            else if (searchDim) strokeAlpha = '33';
-            else if (isHov) strokeAlpha = 'CC';
-            
-            ctx.strokeStyle = col + strokeAlpha;
-            ctx.lineWidth = (searchQuery && isMatch) ? 2.4 : (isHov ? 2.2 : 1.0);
+            ctx.strokeStyle = col + (isHov ? 'CC' : '66');
+            ctx.lineWidth = isHov ? 2.2 : 1.0;
             ctx.stroke();
           }
           ctx.shadowBlur = 0;
@@ -2244,21 +2919,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           }
 
           const fs = Math.max(9.5, 12.5 * sc * a.s);
-          
-          let textColor;
-          if (isSel) {
-            textColor = '#FFFFFF';
-          } else if (isConn) {
-            textColor = col + 'F0';
-          } else if (searchQuery && isMatch) {
-            textColor = col + 'FF';
-          } else if (searchDim) {
-            textColor = col + '66';
-          } else {
-            textColor = col + (selNode ? 'AA' : 'EE');
-          }
-          
-          ctx.fillStyle = textColor;
+          ctx.fillStyle = isSel ? '#FFFFFF' : (isConn ? col + 'F0' : col + (selNode ? 'AA' : 'EE'));
           ctx.font = `${fs}px 'DM Mono'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           const lh = Math.max(11, 15 * sc), th = lines.length * lh;
           lines.forEach((l, i) => ctx.fillText(l, p.x, p.y - th / 2 + lh * (i + .5)));
@@ -2268,7 +2929,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       requestAnimationFrame(drawAll);
     }
-    
     // Auto-fit camera to include all nodes
     function autoFitCamera() {
       if (!nodes.length || !W || !H) return;
@@ -2289,36 +2949,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       tvy = -((minY + maxY) / 2);
     }
 
-    // ═══ SEARCH FUNCTIONALITY ═══
-    const mapSearchEl = document.getElementById('mapSearch');
-    const mapSearchInput = document.getElementById('mapSearchInput');
-    
-    mapSearchInput.addEventListener('input', (e) => {
-      const query = e.target.value;
-      performMapSearch(query);
-      mapSearchEl.classList.toggle('active', query.length > 0);
-    });
-    
-    // Clear search on Escape key
-    mapSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        mapSearchInput.value = '';
-        performMapSearch('');
-        mapSearchEl.classList.remove('active');
-        mapSearchInput.blur();
-      }
-    });
-
     // Load shared dynamic nodes, then settle layout, start the render loop, and run an initial risk scan
     loadDynamicNodesFromServer().then(() => {
-      rebuildNodeIndex();
       relaxLayout(6, 0.25);
       autoFitCamera();
       drawAll();
       // Kick off the alert scan once nodes (including any shared ones) are ready
       scanMapRisk();
     }).catch(() => {
-      rebuildNodeIndex();
       autoFitCamera();
       drawAll();
       scanMapRisk();
@@ -2399,10 +3037,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           r.classList.toggle('active', rt === 'all');
         });
       }
-      // Clear search
-      mapSearchInput.value = '';
-      performMapSearch('');
-      mapSearchEl.classList.remove('active');
     }
 
     function toggleShadow() {
@@ -2427,9 +3061,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         size: 26,
         connections: ['gold', 'usd', 'aus_rba']
       };
-      nodes.push(nn); 
-      anim[nid] = { s: 0 };
-      rebuildNodeIndex();
+      nodes.push(nn); anim[nid] = { s: 0 };
       saveDynamicNodes();
       setTimeout(() => { anim[nid].s = 1; openPanel(nn); }, 300);
     }
