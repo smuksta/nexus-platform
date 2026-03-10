@@ -2511,6 +2511,27 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       { id: 'solar', x: -175, y: -295, label: 'SOLAR/EV\nMETALS', type: 'resource', size: 22, connections: ['silver', 'ai_silver'] },
     ];
 
+    // Auto-size base nodes based on how many connections they have
+    (function autoSizeBaseNodesByDegree() {
+      const degrees = new Map();
+      nodes.forEach(n => {
+        degrees.set(n.id, (n.connections || []).length);
+      });
+      let minDeg = Infinity, maxDeg = -Infinity;
+      degrees.forEach(d => {
+        if (d < minDeg) minDeg = d;
+        if (d > maxDeg) maxDeg = d;
+      });
+      const minSize = 22;
+      const maxSize = 52;
+      const span = Math.max(1, maxDeg - minDeg || 1);
+      nodes.forEach(n => {
+        const d = degrees.get(n.id) ?? 0;
+        const t = (d - minDeg) / span;
+        n.size = minSize + t * (maxSize - minSize);
+      });
+    })();
+
     // Bring bubbles closer together (layout compactness)
     const LAYOUT_COMPACTNESS = 0.82;
     nodes.forEach(n => { n.x *= LAYOUT_COMPACTNESS; n.y *= LAYOUT_COMPACTNESS; });
@@ -2712,7 +2733,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
     resize(); window.addEventListener('resize', resize);
 
-    let vx = 0, vy = 0, sc = 0.9, tvx = 0, tvy = 0, tsc = 0.9;
+    let vx = 0, vy = 0, sc = 1.15, tvx = 0, tvy = 0, tsc = 1.15;
     let isDrag = false, lmx = 0, lmy = 0;
     let selNode = null, hovNode = null, showShadow = true, typeFilter = null;
     let panelData = {}, spActiveTab = 'why';
