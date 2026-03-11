@@ -427,6 +427,16 @@
         font-size: 13px;
         min-height: 44px;
       }
+
+      .deep-dive-bar {
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+
+      .sp-close-on-bar {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+      }
     }
 
     .tooltip-name {
@@ -1223,26 +1233,59 @@
       color: var(--muted2);
     }
 
-    /* Deep dive button */
+    /* Deep dive bar: title + close (close always visible on mobile) */
+    .deep-dive-bar {
+      margin: 14px 0 0;
+      padding: 0 4px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+      min-height: 44px;
+    }
+
     .deep-dive-btn {
-      margin: 14px 20px 0;
-      width: calc(100% - 40px);
+      flex: 1;
+      min-width: 0;
       background: var(--gold);
       color: var(--bg);
       border: none;
-      padding: 10px;
+      padding: 10px 12px;
       font-family: var(--orb);
       font-size: 10px;
       letter-spacing: 2px;
       cursor: pointer;
       border-radius: 2px;
       transition: all 0.2s;
-      flex-shrink: 0;
       text-transform: uppercase;
+      text-align: left;
     }
 
     .deep-dive-btn:hover {
       background: var(--gold2);
+    }
+
+    .sp-close-on-bar {
+      flex-shrink: 0;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--bg);
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .sp-close-on-bar:hover {
+      background: rgba(0, 0, 0, 0.6);
     }
 
     .sp-tabs {
@@ -2208,7 +2251,10 @@
       </div>
       <button class="sp-close" onclick="closePanel()" title="Close and return to map">✕ Close</button>
     </div>
-    <button class="deep-dive-btn" id="deepDiveBtn" onclick="deepDive()">◈ DEEP DIVE IN INTEL →</button>
+    <div class="deep-dive-bar">
+      <button class="deep-dive-btn" id="deepDiveBtn" onclick="deepDive()">◈ DEEP DIVE IN INTEL →</button>
+      <button class="sp-close-on-bar" onclick="closePanel()" title="Close and return to map" aria-label="Close">✕</button>
+    </div>
     <div class="sp-tabs">
       <button class="sp-tab active" onclick="spTab('why')">WHY</button>
       <button class="sp-tab" onclick="spTab('shadow')">SHADOW</button>
