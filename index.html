@@ -408,6 +408,20 @@
         bottom: 10px;
       }
 
+      /* Slide panel: start below mobile header so heading & close are visible */
+      #slidePanel {
+        top: 90px;
+        height: calc(100vh - 90px);
+        width: 100%;
+        max-width: 100%;
+        padding-right: env(safe-area-inset-right, 0);
+      }
+
+      .sp-head {
+        padding: 12px 16px 12px 12px;
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+
       .sp-close {
         padding: 10px 16px;
         font-size: 13px;
