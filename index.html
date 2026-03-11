@@ -3409,6 +3409,40 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       renderSpContent();
     }
 
+    // Simple owner-only flag for destructive actions; toggled by you in the browser.
+    let nexusIsOwner = false;
+    function enableOwnerTools() {
+      nexusIsOwner = true;
+      try { window.localStorage.setItem('nexus_owner', '1'); } catch (_) {}
+      renderSpContent();
+    }
+    (function restoreOwnerFlag() {
+      try {
+        if (window.localStorage.getItem('nexus_owner') === '1') nexusIsOwner = true;
+      } catch (_) {}
+    })();
+
+    function removeCurrentNode() {
+      if (!nexusIsOwner || !currentPanelNode) return;
+      const node = currentPanelNode;
+      if (baseNodeIds.has(node.id)) {
+        alert('Core seed bubbles cannot be removed.');
+        return;
+      }
+      if (!confirm(`Remove bubble "${(node.fullLabel || node.label || node.id)}" from the map?`)) return;
+      // Remove node itself
+      nodes = nodes.filter(n => n.id !== node.id);
+      if (anim[node.id]) delete anim[node.id];
+      // Strip connections pointing to it
+      nodes.forEach(n => {
+        if (Array.isArray(n.connections)) {
+          n.connections = n.connections.filter(cid => cid !== node.id);
+        }
+      });
+      saveDynamicNodes();
+      closePanel();
+    }
+
     function renderSpContent() {
       const d = panelData; const node = currentPanelNode;
       const col = typeColors[node.type];
@@ -3432,7 +3466,18 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       });
       connHtml += '</div></div>';
 
-      document.getElementById('spContent').innerHTML = tabs[spActiveTab] + (spActiveTab === 'act' ? connHtml : connHtml);
+      let dangerHtml = '';
+      if (nexusIsOwner && !baseNodeIds.has(node.id)) {
+        dangerHtml = `
+        <div class="sp-danger-zone">
+          <div class="sp-danger-label">DANGER ZONE</div>
+          <div class="sp-danger-text">Remove this bubble from the shared map (for everyone). This cannot be undone.</div>
+          <button class="sp-remove-btn" onclick="removeCurrentNode()">✕ REMOVE BUBBLE</button>
+        </div>`;
+      }
+
+      document.getElementById('spContent').innerHTML =
+        tabs[spActiveTab] + connHtml + (spActiveTab === 'act' ? dangerHtml : '');
     }
 
     function spTab(tab, doRender = true) {
