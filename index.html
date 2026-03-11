@@ -2309,7 +2309,9 @@
     }
 
     // ═══ GLOBAL STATE ═══
-    const riskHighlights = { shortTerm: null, longTerm: null };
+    // URGENT risks can now contain multiple short- and long-term entries.
+    // We normalise everything to arrays: [{ nodeId, headline, reason, defend }, ...]
+    const riskHighlights = { shortTerm: [], longTerm: [] };
     let searchQuery = '';
 
     // ═══ CLOCK ═══
@@ -2355,18 +2357,18 @@
     function fallbackRiskHighlights() {
       const shortNode = nodes.find(n => n.id === 'hormuz') || nodes.find(n => n.id === 'oil') || nodes[0];
       const longNode = nodes.find(n => n.id === 'cbdc') || nodes.find(n => n.id === 'great_taking') || nodes[1] || nodes[0];
-      riskHighlights.shortTerm = shortNode ? {
+      riskHighlights.shortTerm = shortNode ? [{
         nodeId: shortNode.id,
         headline: 'Hormuz / oil supply shock',
         reason: 'Tighter shipping lanes and higher oil prices can quickly show up in everyday fuel costs and delivery prices.',
         defend: 'Keep extra cash on hand, avoid fixed‑price jobs or expenses that ignore rising fuel costs, and consider simple ways to reduce fuel use.'
-      } : null;
-      riskHighlights.longTerm = longNode ? {
+      }] : [];
+      riskHighlights.longTerm = longNode ? [{
         nodeId: longNode.id,
         headline: 'Policy and money system risk',
         reason: 'Slow‑burn changes in cash access, CBDCs and super rules can reshape how savings and contracts behave over years.',
         defend: 'Diversify between bank deposits, physical assets and flexible contract structures so you are not trapped in one policy regime.'
-      } : null;
+      }] : [];
     }
 
     // Scan the map for biggest near and long-term risks and populate the alert bar
@@ -2386,25 +2388,29 @@ Here is the current map of key nodes (id:label[type]):
 ${summary}
 
 From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hormuz disruptions, USD weakening, AUD under pressure), pick:
-- the single biggest SHORT-TERM (0-3 months) risk for this user
-- the single biggest LONG-TERM (6-18 months) structural risk
+- up to THREE biggest SHORT-TERM (0-3 months) risks for this user
+- up to THREE biggest LONG-TERM (6-18 months) structural risks
 
 For each, also give a concrete defence plan focused on what this person can actually do in real life (simple positioning, rough timing, or preparation steps). Avoid complex products or professional‑trader language.
 
 Respond ONLY with strict JSON, no markdown, no commentary:
 {
-  "shortTerm":{
-    "nodeId":"ID_FROM_LIST",
-    "headline":"very short line describing the risk",
-    "reason":"1-2 sentences on why this is the biggest near-term risk",
-    "defend":"1-2 sentences on how this user can defend against it in practical terms"
-  },
-  "longTerm":{
-    "nodeId":"ID_FROM_LIST",
-    "headline":"very short line describing the risk",
-    "reason":"1-2 sentences on why this is the biggest long-term risk",
-    "defend":"1-2 sentences on how this user can defend against it in practical terms"
-  }
+  "shortTerm":[
+    {
+      "nodeId":"ID_FROM_LIST",
+      "headline":"very short line describing the risk",
+      "reason":"1-2 sentences on why this is a key near-term risk",
+      "defend":"1-2 sentences on how this user can defend against it in practical terms"
+    }
+  ],
+  "longTerm":[
+    {
+      "nodeId":"ID_FROM_LIST",
+      "headline":"very short line describing the risk",
+      "reason":"1-2 sentences on why this is a key long-term risk",
+      "defend":"1-2 sentences on how this user can defend against it in practical terms"
+    }
+  ]
 }`;
 
         const res = await fetch(NEXUS_WORKER_URL, {
@@ -2423,9 +2429,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (!parsed || (typeof parsed !== 'object')) {
           throw new Error('Risk JSON had wrong shape');
         }
-        riskHighlights.shortTerm = parsed.shortTerm || null;
-        riskHighlights.longTerm = parsed.longTerm || null;
-        if (!riskHighlights.shortTerm && !riskHighlights.longTerm) {
+        const stParsed = parsed.shortTerm;
+        const ltParsed = parsed.longTerm;
+        riskHighlights.shortTerm = Array.isArray(stParsed) ? stParsed.filter(x => x && x.nodeId) : (stParsed && stParsed.nodeId ? [stParsed] : []);
+        riskHighlights.longTerm = Array.isArray(ltParsed) ? ltParsed.filter(x => x && x.nodeId) : (ltParsed && ltParsed.nodeId ? [ltParsed] : []);
+        if (!riskHighlights.shortTerm.length && !riskHighlights.longTerm.length) {
           // If the model responded but gave us nothing usable, fall back
           fallbackRiskHighlights();
         }
@@ -2441,8 +2449,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     function updateRiskBar() {
       const el = document.getElementById('riskBarContent');
       if (!el) return;
-      const st = riskHighlights.shortTerm;
-      const lt = riskHighlights.longTerm;
+      const stList = riskHighlights.shortTerm || [];
+      const ltList = riskHighlights.longTerm || [];
+      const st = stList[0] || null;
+      const lt = ltList[0] || null;
       // Always show something, even if we have no model output yet
       if (!st && !lt) {
         el.innerHTML = '';
@@ -2495,34 +2505,42 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
       if (shortBox && shortEmpty) {
-        if (st) {
+        if (stList.length) {
           shortEmpty.style.display = 'none';
           shortBox.style.display = 'block';
-          const h = st.headline || 'Short-term risk';
-          const why = st.reason || '';
-          const defend = st.defend || '';
-          shortBox.innerHTML = `
-            <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-            <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
-            <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
-          `;
+          shortBox.innerHTML = stList.map((item, idx) => {
+            const h = item.headline || 'Short-term risk';
+            const why = item.reason || '';
+            const defend = item.defend || '';
+            return `
+              <div style="margin-bottom:10px">
+                <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
+                <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+                <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
+              </div>
+            `;
+          }).join('');
         } else {
           shortBox.style.display = 'none';
           shortEmpty.style.display = 'block';
         }
       }
       if (longBox && longEmpty) {
-        if (lt) {
+        if (ltList.length) {
           longEmpty.style.display = 'none';
           longBox.style.display = 'block';
-          const h = lt.headline || 'Long-term risk';
-          const why = lt.reason || '';
-          const defend = lt.defend || '';
-          longBox.innerHTML = `
-            <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-            <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
-            <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
-          `;
+          longBox.innerHTML = ltList.map((item, idx) => {
+            const h = item.headline || 'Long-term risk';
+            const why = item.reason || '';
+            const defend = item.defend || '';
+            return `
+              <div style="margin-bottom:10px">
+                <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
+                <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+                <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
+              </div>
+            `;
+          }).join('');
         } else {
           longBox.style.display = 'none';
           longEmpty.style.display = 'block';
@@ -2563,7 +2581,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       document.getElementById('btnSignals').classList.toggle('active', mode === 'signals');
       document.getElementById('btnUrgent').classList.toggle('active', mode === 'urgent');
       if (mode !== 'map') closePanel();
-      if ((mode === 'map' || mode === 'urgent') && !riskHighlights.shortTerm && !riskHighlights.longTerm) {
+      if ((mode === 'map' || mode === 'urgent') && !riskHighlights.shortTerm.length && !riskHighlights.longTerm.length) {
         scanMapRisk();
       }
       if (mode === 'signals' && !sigDataCache['GOLD']) {
@@ -2965,10 +2983,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       let urgentVisibleIds = null;
       if (typeFilter === 'urgent') {
         urgentVisibleIds = new Set();
-        const stVis = riskHighlights.shortTerm && riskHighlights.shortTerm.nodeId;
-        const ltVis = riskHighlights.longTerm && riskHighlights.longTerm.nodeId;
-        if (stVis) urgentVisibleIds.add(stVis);
-        if (ltVis) urgentVisibleIds.add(ltVis);
+        const stList = riskHighlights.shortTerm || [];
+        const ltList = riskHighlights.longTerm || [];
+        stList.forEach(r => { if (r && r.nodeId) urgentVisibleIds.add(r.nodeId); });
+        ltList.forEach(r => { if (r && r.nodeId) urgentVisibleIds.add(r.nodeId); });
       }
       const isVisibleByFilter = n => {
         if (!typeFilter) return true;
@@ -3163,9 +3181,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
         if (typeFilter === 'urgent') {
-          const stVis = riskHighlights.shortTerm && riskHighlights.shortTerm.nodeId;
-          const ltVis = riskHighlights.longTerm && riskHighlights.longTerm.nodeId;
-          const ok = n.id === stVis || n.id === ltVis;
+          const stList = riskHighlights.shortTerm || [];
+          const ltList = riskHighlights.longTerm || [];
+          const ok = [...stList, ...ltList].some(r => r && r.nodeId === n.id);
           if (!ok) continue;
         } else if (typeFilter && n.type !== typeFilter) {
           continue;
