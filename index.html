@@ -3430,8 +3430,13 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         return;
       }
       if (!confirm(`Remove bubble "${(node.fullLabel || node.label || node.id)}" from the map?`)) return;
-      // Remove node itself
-      nodes = nodes.filter(n => n.id !== node.id);
+      // Remove node itself (mutate in place because nodes is const)
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        if (nodes[i].id === node.id) {
+          nodes.splice(i, 1);
+          break;
+        }
+      }
       if (anim[node.id]) delete anim[node.id];
       // Strip connections pointing to it
       nodes.forEach(n => {
