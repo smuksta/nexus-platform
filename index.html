@@ -3095,6 +3095,12 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     }
 
     // ═══ MAP INTERACTION ═══
+    // Convert client coords to canvas coords (works on mobile where header height varies)
+    function canvasCoords(clientX, clientY) {
+      const r = canvas.getBoundingClientRect();
+      return { x: clientX - r.left, y: clientY - r.top };
+    }
+
     function nodeAt(mx, my) {
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
@@ -3112,13 +3118,19 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       } return null;
     }
 
+    // Touch: only open panel on tap (no drag). Track movement to distinguish.
+    let touchTapNode = null, touchStartX = 0, touchStartY = 0, touchMoved = false;
+    const TAP_DRAG_THRESHOLD_PX = 14;
+
     canvas.addEventListener('mousedown', e => {
-      const n = nodeAt(e.clientX, e.clientY - 56);
+      const { x, y } = canvasCoords(e.clientX, e.clientY);
+      const n = nodeAt(x, y);
       if (n) { openPanel(n); } else { isDrag = true; lmx = e.clientX; lmy = e.clientY; }
     });
 
     canvas.addEventListener('mousemove', e => {
-      const n = nodeAt(e.clientX, e.clientY - 56);
+      const { x, y } = canvasCoords(e.clientX, e.clientY);
+      const n = nodeAt(x, y);
       hovNode = n;
       const tt = document.getElementById('mapTooltip');
       if (n) {
@@ -3143,15 +3155,53 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
     let ltd = 0;
     canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) { const t = e.touches[0]; const n = nodeAt(t.clientX, t.clientY - 56); if (n) openPanel(n); else { isDrag = true; lmx = t.clientX; lmy = t.clientY; } }
-      if (e.touches.length === 2) ltd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        const { x, y } = canvasCoords(t.clientX, t.clientY);
+        touchTapNode = nodeAt(x, y);
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchMoved = false;
+        isDrag = true;
+        lmx = t.clientX;
+        lmy = t.clientY;
+      }
+      if (e.touches.length === 2) {
+        ltd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
     });
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
-      if (e.touches.length === 1 && isDrag) { tvx += (e.touches[0].clientX - lmx) / sc; tvy += (e.touches[0].clientY - lmy) / sc; lmx = e.touches[0].clientX; lmy = e.touches[0].clientY; }
-      if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); tsc = Math.max(.25, Math.min(3, tsc * (d / ltd))); ltd = d; }
+      if (e.touches.length === 1 && isDrag) {
+        const t = e.touches[0];
+        if (!touchMoved) {
+          const dx = t.clientX - touchStartX;
+          const dy = t.clientY - touchStartY;
+          if (dx * dx + dy * dy > TAP_DRAG_THRESHOLD_PX * TAP_DRAG_THRESHOLD_PX) touchMoved = true;
+        }
+        tvx += (t.clientX - lmx) / sc;
+        tvy += (t.clientY - lmy) / sc;
+        lmx = t.clientX;
+        lmy = t.clientY;
+      }
+      if (e.touches.length === 2) {
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        tsc = Math.max(.25, Math.min(3, tsc * (d / ltd)));
+        ltd = d;
+      }
     }, { passive: false });
-    canvas.addEventListener('touchend', () => isDrag = false);
+    canvas.addEventListener('touchend', e => {
+      if (e.changedTouches.length === 1 && !touchMoved && touchTapNode) {
+        openPanel(touchTapNode);
+      }
+      isDrag = false;
+      touchTapNode = null;
+    });
+    canvas.addEventListener('touchcancel', () => {
+      isDrag = false;
+      touchTapNode = null;
+      touchMoved = true;
+    });
 
     function resetMapView() {
       tvx = 0; tvy = 0; tsc = 0.9;
