@@ -3444,7 +3444,9 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     }
 
     function renderSpContent() {
-      const d = panelData; const node = currentPanelNode;
+      const d = panelData;
+      const node = currentPanelNode;
+      if (!node) return;
       const col = typeColors[node.type];
       const act = typeof d.act === 'object' ? d.act : { immediate: d.act, shortTerm: '', longTerm: '' };
 
