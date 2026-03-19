@@ -2263,16 +2263,15 @@
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
     // Twelve Data configuration — insert your API key below
     const TWELVEDATA_API_KEY = 'a22b67e35a7349e386872286788aead4';
-    // Base Twelve Data endpoints for live prices and prior close
-    const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
-    const TWELVEDATA_EOD_URL = 'https://api.twelvedata.com/eod';
+    // Twelve Data quote endpoint (supports multiple symbols, includes close & previous_close)
+    const TWELVEDATA_QUOTE_URL = 'https://api.twelvedata.com/quote';
 
     // ═══ MODEL JSON PARSING HELPERS ═══
     function _stripModelFences(s) {
       return String(s ?? '')
         .replace(/^\uFEFF/, '')
-        .replace(/```(?:json)?/gi, '')
-        .replace(/```/g, '')
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/i, '')
         .trim();
     }
 
@@ -2409,61 +2408,43 @@
 
     async function refreshLiveStats() {
       try {
-        // Helper to fetch current price and prior close for a symbol
-        async function tdPriceWithEod(symbol, label) {
-          const priceUrl = `${TWELVEDATA_PRICE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
-          const eodUrl = `${TWELVEDATA_EOD_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+        const symbols = ['XAU/USD', 'CL1', 'AUD/USD'];
+        const url = `${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbols.join(','))}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('QUOTE HTTP ' + res.status);
+        const data = await res.json();
+        console.log('TwelveData batch quote response:', data);
 
-          const [priceRes, eodRes] = await Promise.all([fetch(priceUrl), fetch(eodUrl)]);
-          if (!priceRes.ok) throw new Error(label + ' price HTTP ' + priceRes.status);
-          if (!eodRes.ok) throw new Error(label + ' EOD HTTP ' + eodRes.status);
+        const getQuote = sym => data[sym] || {};
 
-          const priceJson = await priceRes.json();
-          const eodJson = await eodRes.json();
-          console.log(`TwelveData ${label} price response:`, priceJson);
-          console.log(`TwelveData ${label} EOD response:`, eodJson);
-
-          const current = Number(priceJson.price);
-          const prevClose = Number(
-            eodJson.close ??
-            (Array.isArray(eodJson.values) && eodJson.values.length ? eodJson.values[0].close : NaN)
-          );
-          let changePct = 0;
-          if (current && prevClose) {
-            changePct = ((current - prevClose) / prevClose) * 100;
-          }
-          return { current, changePct };
-        }
-
-        const [gold, oil, aud] = await Promise.all([
-          tdPriceWithEod('XAU/USD', 'GOLD'),
-          tdPriceWithEod('CL1', 'OIL'),
-          tdPriceWithEod('AUD/USD', 'AUD'),
-        ]);
+        const goldQ = getQuote('XAU/USD');
+        const oilQ = getQuote('CL1');
+        const audQ = getQuote('AUD/USD');
 
         const goldEl = document.getElementById('statGold');
         const oilEl = document.getElementById('statOil');
         const audEl = document.getElementById('statAUD');
 
-        if (gold && gold.current && goldEl) {
-          goldEl.textContent = '$' + Number(gold.current).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          goldEl.style.color = gold.changePct < 0 ? 'var(--red)' : 'var(--teal)';
+        function applyQuote(q, el, fmt, label) {
+          if (!el || !q || q.close == null || q.previous_close == null) return;
+          const close = Number(q.close);
+          const prev = Number(q.previous_close);
+          if (!isFinite(close) || !isFinite(prev) || !prev) return;
+          const changePct = ((close - prev) / prev) * 100;
+          el.textContent = fmt(close);
+          el.style.color = changePct < 0 ? 'var(--red)' : 'var(--teal)';
         }
-        if (oil && oil.current && oilEl) {
-          oilEl.textContent = '$' + Number(oil.current).toFixed(2);
-          oilEl.style.color = oil.changePct < 0 ? 'var(--red)' : 'var(--teal)';
-        }
-        if (aud && aud.current && audEl) {
-          audEl.textContent = Number(aud.current).toFixed(4);
-          audEl.style.color = aud.changePct < 0 ? 'var(--red)' : 'var(--teal)';
-        }
+
+        applyQuote(goldQ, goldEl, v => '$' + Number(v).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'GOLD');
+        applyQuote(oilQ, oilEl, v => '$' + Number(v).toFixed(2), 'OIL');
+        applyQuote(audQ, audEl, v => Number(v).toFixed(4), 'AUD');
       } catch (e) {
         console.error('LIVE STATS ERROR (Twelve Data):', e);
       }
     }
 
     refreshLiveStats();
-    setInterval(refreshLiveStats, 60000);
+    setInterval(refreshLiveStats, 300000);
 
     // Simple fallback: pick obvious risks from the base map if the model call fails
     function fallbackRiskHighlights() {
@@ -3473,7 +3454,13 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         if (!Array.isArray(d.content)) {
           throw new Error(d.error || 'No content field in model response');
         }
-        const raw = d.content.map(i => i.text || '').join('');
+        const raw = d.content
+          .map(i => i.text || '')
+          .join('')
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim();
         console.log('RAW RESPONSE:', raw);
         panelData = parseModelJsonOrThrow(raw);
         integrateNewNodesFromPanel(node, panelData);
