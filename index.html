@@ -3451,7 +3451,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514", max_tokens: 1200,
+            model: "claude-sonnet-4-20250514", max_tokens: 2000,
             messages: [{
               role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is a regular person (with an Australian lens by default) who wants to understand risks and protect their savings and lifestyle. Use simple language, avoid finance jargon, and explain ideas like you would to a smart friend who does not work in markets.
 
@@ -3754,7 +3754,7 @@ Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact stru
       const res = await fetch(NEXUS_WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1200,
+          model: "claude-sonnet-4-20250514", max_tokens: 2000,
           messages: [{ role: "user", content: prompt }]
         })
       });
