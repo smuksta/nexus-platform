@@ -2532,7 +2532,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 1200,
+            max_tokens: 2000,
             messages: [{ role: 'user', content: prompt }],
           }),
         });
@@ -3595,7 +3595,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       try {
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1400, messages: [{ role: "user", content: sys + "\n\nQUERY: " + q }] })
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: sys + "\n\nQUERY: " + q }] })
         });
         const d = await res.json();
         if (!Array.isArray(d.content)) {
@@ -3897,7 +3897,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514", max_tokens: 1000,
+            model: "claude-sonnet-4-20250514", max_tokens: 2000,
             messages: [{ role: "user", content: prompt }]
           })
         });
