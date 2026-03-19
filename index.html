@@ -3435,36 +3435,19 @@ The reader is a regular person (with an Australian lens by default) seeking clea
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
-  "asset":"SHORT NAME",
-  "sentiment":"BULLISH|BEARISH|VOLATILE|NEUTRAL",
-  "analysis":["paragraph 1 — what is happening and why with specific numbers","paragraph 2 — Australian specific impact"],
-  "impactRadar":[
-    {"asset":"GOLD","dir":"up|down|neutral","pct":80,"note":"brief why"},
-    {"asset":"SILVER","dir":"up|down|neutral","pct":65,"note":"brief why"},
-    {"asset":"OIL","dir":"up|down|neutral","pct":85,"note":"brief why"},
-    {"asset":"AUD/USD","dir":"up|down|neutral","pct":55,"note":"brief why"}
+  "asset": "SHORT NAME",
+  "sentiment": "BULLISH|BEARISH|VOLATILE|NEUTRAL",
+  "summary": "2-3 sentence executive summary of what is happening and why it matters",
+  "analysis": ["paragraph 1", "paragraph 2"],
+  "keyLevels": [
+    {"lbl": "CURRENT", "val": "$X", "note": "brief", "color": "#00D4AA"},
+    {"lbl": "WATCH", "val": "$X", "note": "brief", "color": "#C9A84C"}
   ],
-  "levels":[
-    {"lbl":"CURRENT","val":"$X","note":"where we are","color":"#00D4AA"},
-    {"lbl":"TARGET 1","val":"$X","note":"first level","color":"#C9A84C"},
-    {"lbl":"INTERVENTION","val":"$X","note":"govt/CB acts here","color":"#E87B34"},
-    {"lbl":"SUPPORT","val":"$X","note":"floor on reversal","color":"#3A7FD5"}
+  "risks": [
+    {"title": "Risk name", "desc": "one sentence", "impact": "HIGH|MED|LOW"},
+    {"title": "Risk name", "desc": "one sentence", "impact": "HIGH|MED|LOW"}
   ],
-  "scenarios":[
-    {"type":"base","lbl":"BASE CASE","prob":"55%","text":"most likely 2-4 week outcome with price targets"},
-    {"type":"bull","lbl":"BULL CASE","prob":"25%","text":"upside triggers and targets"},
-    {"type":"bear","lbl":"BEAR CASE","prob":"20%","text":"downside triggers and what breaks it"}
-  ],
-  "ripples":[
-    {"icon":"⛽","title":"Fuel Costs","desc":"AUS petrol price impact and timeline","imp":"+HIGH","ic":"rgba(232,57,74,0.15)","tc":"#E8394A"},
-    {"icon":"🏗","title":"Construction","desc":"Melbourne trades cost impact","imp":"+MED","ic":"rgba(201,168,76,0.15)","tc":"#C9A84C"},
-    {"icon":"🥇","title":"Physical Gold","desc":"specific recommendation on physical metals","imp":"BUY","ic":"rgba(0,212,170,0.12)","tc":"#00D4AA"}
-  ],
-  "timeline":[
-    {"cls":"now","time":"24-72 HOURS","title":"Immediate signal","desc":"what to watch right now"},
-    {"cls":"soon","time":"1-2 WEEKS","title":"Confirmation point","desc":"key event or data that confirms or denies"},
-    {"cls":"later","time":"3-6 MONTHS","title":"Resolution","desc":"longer term outcome and portfolio positioning"}
-  ]
+  "action": {"now": "one sentence", "soon": "one sentence", "later": "one sentence"}
 }`;
 
       try {
@@ -3500,8 +3483,6 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     function renderIntel(d) {
       document.getElementById('intelLoading').style.display = 'none';
       const sentCol = { 'BULLISH': '#00D4AA', 'BEARISH': '#E8394A', 'VOLATILE': '#C9A84C', 'NEUTRAL': '#3A7FD5' }[d.sentiment] || '#C9A84C';
-      const arrow = dir => dir === 'up' ? '▲' : dir === 'down' ? '▼' : '→';
-      const acol = dir => dir === 'up' ? '#00D4AA' : dir === 'down' ? '#E8394A' : '#C9A84C';
 
       const html = `
     <!-- Bridge banner if from map -->
@@ -3509,36 +3490,23 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       ⬡ Deep dive from MAP node: ${document.getElementById('breadcrumbNode').textContent} — full INTEL analysis below
     </div>
 
-    <!-- Analysis -->
+    <!-- Summary + Sentiment -->
     <div class="icard full fade-up">
       <div class="icard-head">
         <span class="icard-title">CORE ANALYSIS — ${d.asset || 'ASSET'}</span>
         <span class="icard-badge" style="background:${sentCol}20;color:${sentCol}">${d.sentiment || 'ANALYSING'}</span>
       </div>
       <div class="icard-body">
+        ${d.summary ? `<p class="analysis-para" style="font-size:14px;font-weight:500">${d.summary}</p>` : ''}
         ${(d.analysis || []).map(p => `<p class="analysis-para">${p}</p>`).join('')}
       </div>
     </div>
 
-    <!-- Impact + Levels -->
+    <!-- Key Levels -->
     <div class="icard fade-up">
-      <div class="icard-head"><span class="icard-title">IMPACT RADAR</span><span class="icard-badge badge-gold">LIVE</span></div>
-      <div class="icard-body">
-        ${(d.impactRadar || []).map(r => `
-          <div class="impact-row">
-            <span class="impact-lbl">${r.asset}</span>
-            <div class="impact-track"><div class="impact-fill" style="width:${r.pct}%;background:${acol(r.dir)}"></div></div>
-            <span class="impact-val" style="color:${acol(r.dir)}">${arrow(r.dir)}${r.pct}%</span>
-          </div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin:-4px 0 8px 82px">${r.note}</div>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="icard fade-up">
-      <div class="icard-head"><span class="icard-title">KEY PRICE LEVELS</span><span class="icard-badge badge-teal">TARGETS</span></div>
+      <div class="icard-head"><span class="icard-title">KEY LEVELS</span><span class="icard-badge badge-teal">FOCUS</span></div>
       <div class="icard-body"><div class="levels-grid">
-        ${(d.levels || []).map(l => `
+        ${(d.keyLevels || []).map(l => `
           <div class="level-box">
             <div class="level-lbl">${l.lbl}</div>
             <div class="level-val" style="color:${l.color || 'var(--text)'}">${l.val}</div>
@@ -3548,50 +3516,41 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       </div></div>
     </div>
 
-    <!-- Scenarios + Ripples -->
+    <!-- Risks -->
     <div class="icard fade-up">
-      <div class="icard-head"><span class="icard-title">SCENARIOS</span><span class="icard-badge badge-gold">3 PATHS</span></div>
+      <div class="icard-head"><span class="icard-title">KEY RISKS</span><span class="icard-badge badge-gold">WATCH</span></div>
       <div class="icard-body">
-        ${(d.scenarios || []).map(s => `
-          <div class="scenario-block ${s.type}">
-            <div class="scenario-lbl">${s.lbl} — ${s.prob}</div>
-            <div class="scenario-text">${s.text}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="icard fade-up">
-      <div class="icard-head"><span class="icard-title">RIPPLE EFFECTS</span><span class="icard-badge badge-red">CASCADE</span></div>
-      <div class="icard-body">
-        ${(d.ripples || []).map(r => `
+        ${(d.risks || []).map(r => `
           <div class="ripple-row">
-            <div class="ripple-icon">${r.icon}</div>
             <div class="ripple-content">
               <div class="ripple-title">${r.title}</div>
               <div class="ripple-desc">${r.desc}</div>
             </div>
-            <span class="ripple-badge" style="background:${r.ic};color:${r.tc}">${r.imp}</span>
+            <span class="ripple-badge" style="background:rgba(232,57,74,0.08);color:${r.impact === 'HIGH' ? '#E8394A' : r.impact === 'MED' ? '#C9A84C' : '#00D4AA'}">${r.impact || ''}</span>
           </div>
         `).join('')}
       </div>
     </div>
 
-    <!-- Timeline -->
+    <!-- Action -->
     <div class="icard full fade-up">
-      <div class="icard-head"><span class="icard-title">WHAT TO WATCH — FORWARD TIMELINE</span><span class="icard-badge badge-blue">FORWARD</span></div>
-      <div class="icard-body"><div class="tl">
-        ${(d.timeline || []).map(t => `
-          <div class="tl-item ${t.cls}">
-            <div class="tl-dot ${t.cls}"></div>
-            <div>
-              <div class="tl-time">${t.time}</div>
-              <div class="tl-title">${t.title}</div>
-              <div class="tl-desc">${t.desc}</div>
-            </div>
+      <div class="icard-head"><span class="icard-title">ACTION PLAN</span><span class="icard-badge badge-blue">STEPS</span></div>
+      <div class="icard-body">
+        <div class="levels-grid">
+          <div class="level-box">
+            <div class="level-lbl">NOW</div>
+            <div class="level-note">${(d.action && d.action.now) || '—'}</div>
           </div>
-        `).join('')}
-      </div></div>
+          <div class="level-box">
+            <div class="level-lbl">SOON</div>
+            <div class="level-note">${(d.action && d.action.soon) || '—'}</div>
+          </div>
+          <div class="level-box">
+            <div class="level-lbl">LATER</div>
+            <div class="level-note">${(d.action && d.action.later) || '—'}</div>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
