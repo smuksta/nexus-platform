@@ -201,12 +201,12 @@
       gap: 18px;
       padding: 8px 32px;
       min-height: 34px;
-      border-top: 1px solid rgba(255, 70, 70, 0.5);
-      border-bottom: 1px solid rgba(255, 70, 70, 0.5);
-      background: linear-gradient(to right, rgba(255, 40, 40, 0.9), rgba(10, 4, 4, 0.96));
+      border-top: 1px solid var(--border2);
+      border-bottom: 1px solid var(--border2);
+      background: rgba(6, 12, 18, 0.98);
       font-family: var(--mono);
       font-size: 12px;
-      color: #FFEFEF;
+      color: var(--text);
     }
 
     .risk-label {
@@ -215,9 +215,9 @@
       letter-spacing: 4px;
       padding: 4px 12px;
       border-radius: 999px;
-      background: #000;
-      color: #FF4040;
-      box-shadow: 0 0 14px rgba(255, 40, 40, 0.85);
+      background: var(--surface2);
+      color: var(--muted2);
+      border: 1px solid var(--border2);
       flex-shrink: 0;
       text-transform: uppercase;
     }
@@ -2357,14 +2357,18 @@
       riskHighlights.shortTerm = shortNode ? [{
         nodeId: shortNode.id,
         headline: 'Hormuz / oil supply shock',
-        reason: 'Tighter shipping lanes and higher oil prices can quickly show up in everyday fuel costs and delivery prices.',
-        defend: 'Keep extra cash on hand, avoid fixed‑price jobs or expenses that ignore rising fuel costs, and consider simple ways to reduce fuel use.'
+        official: 'Tighter shipping lanes and higher oil prices can quickly show up in everyday fuel costs and delivery prices.',
+        shadow: 'Supply chains and refining capacity are structurally tight; geopolitical events amplify volatility that mainstream framing underplays.',
+        defendOfficial: 'Keep extra cash on hand, avoid fixed‑price jobs or expenses that ignore rising fuel costs, and consider simple ways to reduce fuel use.',
+        defendShadow: 'Hedge transport and energy exposure; consider tangible and non‑correlated assets if dollar and policy regimes shift.'
       }] : [];
       riskHighlights.longTerm = longNode ? [{
         nodeId: longNode.id,
         headline: 'Policy and money system risk',
-        reason: 'Slow‑burn changes in cash access, CBDCs and super rules can reshape how savings and contracts behave over years.',
-        defend: 'Diversify between bank deposits, physical assets and flexible contract structures so you are not trapped in one policy regime.'
+        official: 'Slow‑burn changes in cash access, CBDCs and super rules can reshape how savings and contracts behave over years.',
+        shadow: 'Monetary and regulatory convergence may reduce optionality; mainstream narrative focuses on convenience, not sovereignty of choice.',
+        defendOfficial: 'Diversify between bank deposits, physical assets and flexible contract structures so you are not trapped in one policy regime.',
+        defendShadow: 'Maintain access to non‑digital and cross‑border options; stay informed on CBDC and super rule changes.'
       }] : [];
     }
 
@@ -2388,7 +2392,7 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 - up to THREE biggest SHORT-TERM (0-3 months) risks for this user
 - up to THREE biggest LONG-TERM (6-18 months) structural risks
 
-For each, give both a mainstream view (what economists/media say) and a shadow view (the deeper structural concern they avoid talking about), plus a simple, practical defence.
+For each risk item, return: headline, official view (mainstream economists/media), shadow view (deeper structural concern they avoid), defendOfficial (practical defence from conventional wisdom), defendShadow (defence from the more informed alternative perspective).
 
 IMPORTANT: nodeId values must be SHORT snake_case ids that exactly match one of these existing node IDs: hormuz, iran, israel, us_mil, russia, usd, fed, petrodollar, brics, inflation, stocks, oil, gold, silver, eu_energy, great_taking, cb_gold, bis, wef, cbdc, cash_ban, aus_fuel, aud, aus_rba, aus_prop, aus_const, super_aus, apra, ai_silver, solar — do NOT invent new node IDs.
 
@@ -2396,20 +2400,22 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 {
   "shortTerm": [
     {
-      "nodeId": "ID",
-      "headline": "short headline",
-      "mainstream": "1-2 sentences — what mainstream economists and media say about this risk",
-      "shadow": "1-2 sentences — the deeper structural concern that mainstream won't say",
-      "defend": "1-2 sentences practical defence"
+      "nodeId": "id",
+      "headline": "short title",
+      "official": "what mainstream economists and media say",
+      "shadow": "the deeper structural concern mainstream won't cover",
+      "defendOfficial": "practical defence from conventional wisdom",
+      "defendShadow": "defence from the more informed alternative perspective"
     }
   ],
   "longTerm": [
     {
-      "nodeId": "ID",
-      "headline": "short headline",
-      "mainstream": "1-2 sentences — what mainstream economists and media say about this risk",
-      "shadow": "1-2 sentences — the deeper structural concern that mainstream won't say",
-      "defend": "1-2 sentences practical defence"
+      "nodeId": "id",
+      "headline": "short title",
+      "official": "what mainstream economists and media say",
+      "shadow": "the deeper structural concern mainstream won't cover",
+      "defendOfficial": "practical defence from conventional wisdom",
+      "defendShadow": "defence from the more informed alternative perspective"
     }
   ]
 }`;
@@ -2506,24 +2512,43 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const lastScan = document.getElementById('urgentLastScan');
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
+      const renderRiskCard = (item, defaultHeadline) => {
+        const h = item.headline || defaultHeadline;
+        const official = item.official || item.mainstream || item.reason || '';
+        const shadow = item.shadow || '';
+        const defendOfficial = item.defendOfficial || item.defend || '';
+        const defendShadow = item.defendShadow || '';
+        return `
+          <div class="risk-card" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:14px 18px;margin-bottom:14px">
+            <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:var(--gold);margin-bottom:12px">${h}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px">
+              <div>
+                <div style="font-size:10px;letter-spacing:1px;color:var(--muted2);margin-bottom:4px">OFFICIAL VIEW</div>
+                <div style="font-size:12px;line-height:1.5;color:#FFFFFF">${official || '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;letter-spacing:1px;color:#8B5CF6;margin-bottom:4px">SHADOW VIEW</div>
+                <div style="font-size:12px;line-height:1.5;color:#8B5CF6">${shadow || '—'}</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px">
+              <div>
+                <div style="font-size:10px;letter-spacing:1px;color:var(--teal);margin-bottom:4px">MAINSTREAM DEFENCE</div>
+                <div style="font-size:12px;line-height:1.5;color:var(--teal)">${defendOfficial || '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;letter-spacing:1px;color:#8B5CF6;margin-bottom:4px">SHADOW DEFENCE</div>
+                <div style="font-size:12px;line-height:1.5;color:#8B5CF6">${defendShadow || '—'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      };
       if (shortBox && shortEmpty) {
         if (stList.length) {
           shortEmpty.style.display = 'none';
           shortBox.style.display = 'block';
-          shortBox.innerHTML = stList.map((item, idx) => {
-            const h = item.headline || 'Short-term risk';
-            const main = item.mainstream || item.reason || '';
-            const shad = item.shadow || '';
-            const defend = item.defend || '';
-            return `
-              <div style="margin-bottom:10px">
-                <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-                ${main ? `<div style="font-size:11px;line-height:1.5;margin-bottom:4px;color:#FFFFFF">${main}</div>` : ''}
-                ${shad ? `<div style="font-size:11px;line-height:1.5;margin-bottom:6px;color:var(--purple)"><strong>SHADOW:</strong> ${shad}</div>` : ''}
-                <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
-              </div>
-            `;
-          }).join('');
+          shortBox.innerHTML = stList.map(item => renderRiskCard(item, 'Short-term risk')).join('');
         } else {
           shortBox.style.display = 'none';
           shortEmpty.style.display = 'block';
@@ -2533,20 +2558,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (ltList.length) {
           longEmpty.style.display = 'none';
           longBox.style.display = 'block';
-          longBox.innerHTML = ltList.map((item, idx) => {
-            const h = item.headline || 'Long-term risk';
-            const main = item.mainstream || item.reason || '';
-            const shad = item.shadow || '';
-            const defend = item.defend || '';
-            return `
-              <div style="margin-bottom:10px">
-                <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-                ${main ? `<div style="font-size:11px;line-height:1.5;margin-bottom:4px;color:#FFFFFF">${main}</div>` : ''}
-                ${shad ? `<div style="font-size:11px;line-height:1.5;margin-bottom:6px;color:var(--purple)"><strong>SHADOW:</strong> ${shad}</div>` : ''}
-                <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
-              </div>
-            `;
-          }).join('');
+          longBox.innerHTML = ltList.map(item => renderRiskCard(item, 'Long-term risk')).join('');
         } else {
           longBox.style.display = 'none';
           longEmpty.style.display = 'block';
