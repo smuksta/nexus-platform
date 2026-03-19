@@ -3431,7 +3431,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 {
   "asset":"SHORT NAME",
   "sentiment":"BULLISH|BEARISH|VOLATILE|NEUTRAL",
-  "analysis":["paragraph 1 — what is happening and why with specific numbers","paragraph 2 — the mechanism and threshold","paragraph 3 — Australian specific impact"],
+  "analysis":["paragraph 1 — what is happening and why with specific numbers","paragraph 2 — Australian specific impact"],
   "impactRadar":[
     {"asset":"GOLD","dir":"up|down|neutral","pct":80,"note":"brief why"},
     {"asset":"SILVER","dir":"up|down|neutral","pct":65,"note":"brief why"},
@@ -3454,13 +3454,11 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "ripples":[
     {"icon":"⛽","title":"Fuel Costs","desc":"AUS petrol price impact and timeline","imp":"+HIGH","ic":"rgba(232,57,74,0.15)","tc":"#E8394A"},
     {"icon":"🏗","title":"Construction","desc":"Melbourne trades cost impact","imp":"+MED","ic":"rgba(201,168,76,0.15)","tc":"#C9A84C"},
-    {"icon":"🏦","title":"RBA Response","desc":"rate decision implications","imp":"WATCH","ic":"rgba(58,127,213,0.15)","tc":"#3A7FD5"},
     {"icon":"🥇","title":"Physical Gold","desc":"specific recommendation on physical metals","imp":"BUY","ic":"rgba(0,212,170,0.12)","tc":"#00D4AA"}
   ],
   "timeline":[
     {"cls":"now","time":"24-72 HOURS","title":"Immediate signal","desc":"what to watch right now"},
     {"cls":"soon","time":"1-2 WEEKS","title":"Confirmation point","desc":"key event or data that confirms or denies"},
-    {"cls":"soon","time":"1 MONTH","title":"Medium signal","desc":"30-day outlook"},
     {"cls":"later","time":"3-6 MONTHS","title":"Resolution","desc":"longer term outcome and portfolio positioning"}
   ]
 }`;
@@ -3470,7 +3468,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "claude-sonnet-4-20250514",
-            max_tokens: 2000,
+            max_tokens: 3000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.\n\n" + sys,
             messages: [{ role: "user", content: "QUERY: " + q }]
           })
