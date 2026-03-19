@@ -1,0 +1,7 @@
+git add index.html && git commit -m "Update map nodes and UI" && git push
+
+
+cd ~/Desktop/nexus-platform
+git add index.html
+git commit -m "fix: sonnet model, oil symbol, undefined"
+git push
