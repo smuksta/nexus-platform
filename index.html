@@ -2369,9 +2369,12 @@
     }
 
     function _fixMissingCommas(s) {
-      // Fix missing commas between JSON string values and the next key
-      // e.g. "value"\n  "key" should be "value",\n  "key"
-      return String(s).replace(/"(\s*)\n(\s*)"/g, '",\n$2"');
+      s = String(s);
+      s = s.replace(/"s*
+s*"/g, '",
+"');
+      s = s.replace(/"s+"/g, '", "');
+      return s;
     }
 
     function parseModelJsonOrThrow(text) {
