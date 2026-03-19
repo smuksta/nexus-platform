@@ -331,6 +331,7 @@
 
     /* ═══ RESPONSIVE (MOBILE) LAYOUT ═══ */
     @media (max-width: 768px) {
+
       html,
       body {
         height: 100%;
@@ -379,7 +380,8 @@
       }
 
       .view {
-        top: 90px; /* header + alert bar */
+        top: 90px;
+        /* header + alert bar */
         bottom: 0;
       }
 
@@ -431,9 +433,17 @@
         min-width: 44px;
       }
 
-      .sp-cat { font-size: 9px; }
-      .sp-title { font-size: 18px; }
-      .sp-meta { font-size: 10px; }
+      .sp-cat {
+        font-size: 9px;
+      }
+
+      .sp-title {
+        font-size: 18px;
+      }
+
+      .sp-meta {
+        font-size: 10px;
+      }
 
       .deep-dive-bar {
         margin-left: 20px;
@@ -1998,10 +2008,12 @@
 
   <!-- ═══ MAP VIEW ═══ -->
   <div class="view" id="mapView">
-    <div id="mapSearchContainer" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100;">
-      <input type="text" id="mapSearch" placeholder="Search nodes..." style="background: rgba(3, 6, 10, 0.9); border: 1px solid #C9A84C; color: #C9A84C; padding: 8px 16px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 14px; width: 300px; outline: none;">
+    <div id="mapSearchContainer"
+      style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100;">
+      <input type="text" id="mapSearch" placeholder="Search nodes..."
+        style="background: rgba(3, 6, 10, 0.9); border: 1px solid #C9A84C; color: #C9A84C; padding: 8px 16px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 14px; width: 300px; outline: none;">
     </div>
-    
+
     <canvas id="mapCanvas"></canvas>
 
     <div id="mapTooltip">
@@ -2249,8 +2261,10 @@
   <script>
     // ═══ CONFIG ═══
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
-    // Cloudflare Worker endpoint that proxies Finnhub prices
-    const PRICE_API_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev/prices';
+    // Twelve Data configuration — insert your API key below
+    const TWELVEDATA_API_KEY = 'a22b67e35a7349e386872286788aead4';
+    // Base Twelve Data endpoint for live quotes
+    const TWELVEDATA_BASE_URL = 'https://api.twelvedata.com/quote';
 
     // ═══ MODEL JSON PARSING HELPERS ═══
     function _stripModelFences(s) {
@@ -2321,13 +2335,19 @@
 
     async function refreshLiveStats() {
       try {
-        const res = await fetch(`${PRICE_API_URL}?symbols=XAUUSD,CL,AUDUSD`);
-        const data = await res.json();
-        const m = data.symbols || {};
+        // Helper to fetch a single Twelve Data quote
+        async function tdQuote(symbol) {
+          const url = `${TWELVEDATA_BASE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        }
 
-        const gold = m.XAUUSD || m.GC || m['GC=F'];
-        const oil = m.CL || m['CL=F'] || m.XTIUSD;
-        const aud = m.AUDUSD || m['FX:AUDUSD'];
+        const [gold, oil, aud] = await Promise.all([
+          tdQuote('XAU/USD'),
+          tdQuote('CL'),
+          tdQuote('AUD/USD'),
+        ]);
 
         const goldEl = document.getElementById('statGold');
         const oilEl = document.getElementById('statOil');
@@ -2335,18 +2355,21 @@
 
         if (gold && gold.price && goldEl) {
           goldEl.textContent = '$' + Number(gold.price).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          goldEl.style.color = (gold.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+          const goldChange = Number(gold.percent_change || gold.change || 0);
+          goldEl.style.color = goldChange >= 0 ? 'var(--teal)' : 'var(--red)';
         }
         if (oil && oil.price && oilEl) {
           oilEl.textContent = '$' + Number(oil.price).toFixed(2);
-          oilEl.style.color = (oil.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+          const oilChange = Number(oil.percent_change || oil.change || 0);
+          oilEl.style.color = oilChange >= 0 ? 'var(--teal)' : 'var(--red)';
         }
         if (aud && aud.price && audEl) {
           audEl.textContent = Number(aud.price).toFixed(4);
-          audEl.style.color = (aud.change || 0) >= 0 ? 'var(--teal)' : 'var(--red)';
+          const audChange = Number(aud.percent_change || aud.change || 0);
+          audEl.style.color = audChange >= 0 ? 'var(--teal)' : 'var(--red)';
         }
       } catch (e) {
-        console.error('LIVE STATS ERROR:', e);
+        console.error('LIVE STATS ERROR (Twelve Data):', e);
       }
     }
 
@@ -3985,10 +4008,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
   `;
     }
 
-  
-// Add search functionality to map search input with dimming of non-matching nodes
-undefined
-</script>
+
+    // Add search functionality to map search input with dimming of non-matching nodes
+    undefined
+  </script>
 </body>
 
 </html>
