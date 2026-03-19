@@ -2368,22 +2368,29 @@
       return null;
     }
 
+    function _fixMissingCommas(s) {
+      // Fix missing commas between JSON string values and the next key
+      // e.g. "value"\n  "key" should be "value",\n  "key"
+      return String(s).replace(/"(\s*)\n(\s*)"/g, '",\n$2"');
+    }
+
     function parseModelJsonOrThrow(text) {
       const raw = _stripModelFences(text);
       if (!raw) throw new Error('Empty response from model');
       // Fix unescaped newlines in string values (common model mistake)
       const rawFixed = _fixNewlinesInJsonStrings(raw);
-      const extracted = _extractFirstJsonBlock(rawFixed);
+      const fixed = _fixMissingCommas(rawFixed);
+      const extracted = _extractFirstJsonBlock(fixed);
       // If extraction failed (e.g. truncated response), try from first { to last }
       let truncated = null;
       if (!extracted) {
-        const firstBrace = rawFixed.indexOf('{');
-        const lastBrace = rawFixed.lastIndexOf('}');
+        const firstBrace = fixed.indexOf('{');
+        const lastBrace = fixed.lastIndexOf('}');
         if (firstBrace >= 0 && lastBrace > firstBrace) {
-          truncated = rawFixed.slice(firstBrace, lastBrace + 1);
+          truncated = fixed.slice(firstBrace, lastBrace + 1);
         }
       }
-      const candidates = [extracted, truncated, rawFixed].filter(Boolean);
+      const candidates = [extracted, truncated, fixed].filter(Boolean);
 
       for (const c of candidates) {
         try { return JSON.parse(c); } catch (e) { /* try next */ }
