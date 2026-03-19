@@ -2268,11 +2268,10 @@
 
     // ═══ MODEL JSON PARSING HELPERS ═══
     function _stripModelFences(s) {
-      return String(s ?? '')
-        .replace(/^\uFEFF/, '')
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/\s*```\s*$/i, '')
-        .trim();
+      s = String(s ?? '').replace(/^\uFEFF/, '');
+      // Remove any backtick code fences — handle both ```json...``` and plain ```...```
+      s = s.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+      return s.trim();
     }
 
     function _fixTrailingCommas(s) {
