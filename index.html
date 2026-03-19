@@ -2263,8 +2263,9 @@
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
     // Twelve Data configuration — insert your API key below
     const TWELVEDATA_API_KEY = 'a22b67e35a7349e386872286788aead4';
-    // Base Twelve Data endpoint for live quotes
-    const TWELVEDATA_BASE_URL = 'https://api.twelvedata.com/quote';
+    // Base Twelve Data endpoints for live prices and prior close
+    const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
+    const TWELVEDATA_EOD_URL = 'https://api.twelvedata.com/eod';
 
     // ═══ MODEL JSON PARSING HELPERS ═══
     function _stripModelFences(s) {
@@ -2408,42 +2409,53 @@
 
     async function refreshLiveStats() {
       try {
-        // Helper to fetch a single Twelve Data quote
-        async function tdQuote(symbol) {
-          const url = `${TWELVEDATA_BASE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
+        // Helper to fetch current price and prior close for a symbol
+        async function tdPriceWithEod(symbol, label) {
+          const priceUrl = `${TWELVEDATA_PRICE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+          const eodUrl = `${TWELVEDATA_EOD_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+
+          const [priceRes, eodRes] = await Promise.all([fetch(priceUrl), fetch(eodUrl)]);
+          if (!priceRes.ok) throw new Error(label + ' price HTTP ' + priceRes.status);
+          if (!eodRes.ok) throw new Error(label + ' EOD HTTP ' + eodRes.status);
+
+          const priceJson = await priceRes.json();
+          const eodJson = await eodRes.json();
+          console.log(`TwelveData ${label} price response:`, priceJson);
+          console.log(`TwelveData ${label} EOD response:`, eodJson);
+
+          const current = Number(priceJson.price);
+          const prevClose = Number(
+            eodJson.close ??
+            (Array.isArray(eodJson.values) && eodJson.values.length ? eodJson.values[0].close : NaN)
+          );
+          let changePct = 0;
+          if (current && prevClose) {
+            changePct = ((current - prevClose) / prevClose) * 100;
+          }
+          return { current, changePct };
         }
 
         const [gold, oil, aud] = await Promise.all([
-          tdQuote('XAU/USD'),
-          tdQuote('CL1'),
-          tdQuote('AUD/USD'),
+          tdPriceWithEod('XAU/USD', 'GOLD'),
+          tdPriceWithEod('CL1', 'OIL'),
+          tdPriceWithEod('AUD/USD', 'AUD'),
         ]);
-
-        console.log('TwelveData GOLD raw:', gold);
-        console.log('TwelveData OIL raw:', oil);
-        console.log('TwelveData AUD raw:', aud);
 
         const goldEl = document.getElementById('statGold');
         const oilEl = document.getElementById('statOil');
         const audEl = document.getElementById('statAUD');
 
-        if (gold && gold.price && goldEl) {
-          goldEl.textContent = '$' + Number(gold.price).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          const goldChange = Number(gold.percent_change || gold.change || 0);
-          goldEl.style.color = goldChange >= 0 ? 'var(--teal)' : 'var(--red)';
+        if (gold && gold.current && goldEl) {
+          goldEl.textContent = '$' + Number(gold.current).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          goldEl.style.color = gold.changePct < 0 ? 'var(--red)' : 'var(--teal)';
         }
-        if (oil && oil.price && oilEl) {
-          oilEl.textContent = '$' + Number(oil.price).toFixed(2);
-          const oilChange = Number(oil.percent_change || oil.change || 0);
-          oilEl.style.color = oilChange >= 0 ? 'var(--teal)' : 'var(--red)';
+        if (oil && oil.current && oilEl) {
+          oilEl.textContent = '$' + Number(oil.current).toFixed(2);
+          oilEl.style.color = oil.changePct < 0 ? 'var(--red)' : 'var(--teal)';
         }
-        if (aud && aud.price && audEl) {
-          audEl.textContent = Number(aud.price).toFixed(4);
-          const audChange = Number(aud.percent_change || aud.change || 0);
-          audEl.style.color = audChange >= 0 ? 'var(--teal)' : 'var(--red)';
+        if (aud && aud.current && audEl) {
+          audEl.textContent = Number(aud.current).toFixed(4);
+          audEl.style.color = aud.changePct < 0 ? 'var(--red)' : 'var(--teal)';
         }
       } catch (e) {
         console.error('LIVE STATS ERROR (Twelve Data):', e);
@@ -2493,6 +2505,8 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 
 For each, also give a concrete defence plan focused on what this person can actually do in real life (simple positioning, rough timing, or preparation steps). Avoid complex products or professional‑trader language.
 
+IMPORTANT: nodeId values must be SHORT snake_case ids that exactly match one of these existing node IDs: hormuz, iran, israel, us_mil, russia, usd, fed, petrodollar, brics, inflation, stocks, oil, gold, silver, eu_energy, great_taking, cb_gold, bis, wef, cbdc, cash_ban, aus_fuel, aud, aus_rba, aus_prop, aus_const, super_aus, apra, ai_silver, solar — do NOT invent new node IDs.
+
 Respond ONLY with strict JSON, no markdown, no commentary:
 {
   "shortTerm":[
@@ -2518,7 +2532,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 800,
+            max_tokens: 1200,
             messages: [{ role: 'user', content: prompt }],
           }),
         });
@@ -3437,7 +3451,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001", max_tokens: 1200,
+            model: "claude-sonnet-4-20250514", max_tokens: 1200,
             messages: [{
               role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is a regular person (with an Australian lens by default) who wants to understand risks and protect their savings and lifestyle. Use simple language, avoid finance jargon, and explain ideas like you would to a smart friend who does not work in markets.
 
@@ -3581,7 +3595,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       try {
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1400, messages: [{ role: "user", content: sys + "\n\nQUERY: " + q }] })
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1400, messages: [{ role: "user", content: sys + "\n\nQUERY: " + q }] })
         });
         const d = await res.json();
         if (!Array.isArray(d.content)) {
@@ -3734,13 +3748,13 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
     async function fetchAssetSignal(asset) {
       const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. The reader is a regular person (with an Australian lens by default) who wants simple, clear guidance. Avoid jargon and complex products — explain ideas in plain English.
-Analyse the asset: ${asset}. Reply ONLY with compact JSON, no markdown, no extra text:
-{"asset":"${asset}","confluenceScore":75,"signal":"STRONG BUY","entryZone":{"low":"$X","high":"$X","note":"brief"},"target1":{"price":"$X","pct":"+X%","note":"brief"},"target2":{"price":"$X","pct":"+X%","note":"brief"},"stopLoss":{"price":"$X","pct":"-X%","note":"brief"},"factors":[{"name":"Macro","score":80,"color":"#00D4AA"},{"name":"Momentum","score":65,"color":"#C9A84C"},{"name":"Geo Risk","score":85,"color":"#00D4AA"},{"name":"USD","score":70,"color":"#C9A84C"},{"name":"Volume","score":55,"color":"#E87B34"},{"name":"Sentiment","score":60,"color":"#C9A84C"}],"confluence":[{"factor":"USD weak","aligned":true,"note":"brief"},{"factor":"Supply disruption","aligned":true,"note":"brief"},{"factor":"Oil elevated","aligned":true,"note":"brief"},{"factor":"CB buying","aligned":true,"note":"brief"},{"factor":"Rate cuts","aligned":false,"note":"brief"}],"thesis":"One sentence thesis for ${asset}.","watchItems":[{"icon":"📡","title":"Watch","desc":"brief","urgency":"NOW","uc":"rgba(0,212,170,0.15)","ut":"#00D4AA"},{"icon":"📊","title":"Confirm","desc":"brief","urgency":"7D","uc":"rgba(201,168,76,0.12)","ut":"#C9A84C"},{"icon":"⚠️","title":"Invalidation","desc":"brief","urgency":"RISK","uc":"rgba(232,57,74,0.12)","ut":"#E8394A"}],"timeframe":"3-6 months","positionSize":"5-8% portfolio"}`;
+Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact structure (no markdown, no extra commentary):
+{"asset":"ASSET_SYMBOL","confluenceScore":NUMBER_0_100,"signal":"ONE_OF_STRONG_BUY_BUY_WATCH_AVOID_SHORT","entryZone":{"low":"PRICE_RANGE_LOW","high":"PRICE_RANGE_HIGH","note":"SHORT_NOTE"},"target1":{"price":"TARGET1_PRICE","pct":"TARGET1_PCT_MOVE","note":"TARGET1_NOTE"},"target2":{"price":"TARGET2_PRICE","pct":"TARGET2_PCT_MOVE","note":"TARGET2_NOTE"},"stopLoss":{"price":"STOP_PRICE","pct":"STOP_PCT_MOVE","note":"STOP_NOTE"},"factors":[{"name":"FACTOR_NAME","score":NUMBER_0_100,"color":"HEX_COLOR"}],"confluence":[{"factor":"FACTOR_LABEL","aligned":true,"note":"BRIEF_REASON"}],"thesis":"ONE_SENTENCE_THESIS","watchItems":[{"icon":"ICON_EMOJI","title":"LABEL","desc":"BRIEF_DESC","urgency":"NOW_OR_LATER","uc":"BACKGROUND_COLOR","ut":"TEXT_COLOR"}],"timeframe":"HUMAN_READABLE_TIMEFRAME","positionSize":"HUMAN_READABLE_POSITION_SIZE"}`;
 
       const res = await fetch(NEXUS_WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001", max_tokens: 1000,
+          model: "claude-sonnet-4-20250514", max_tokens: 1200,
           messages: [{ role: "user", content: prompt }]
         })
       });
@@ -3883,7 +3897,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001", max_tokens: 800,
+            model: "claude-sonnet-4-20250514", max_tokens: 1000,
             messages: [{ role: "user", content: prompt }]
           })
         });
