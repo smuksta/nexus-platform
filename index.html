@@ -2376,6 +2376,14 @@
       // Fix unescaped newlines in string values (common model mistake)
       const rawFixed = _fixNewlinesInJsonStrings(raw);
       const fixed = _fixMissingCommas(rawFixed);
+
+      // First, try to parse the whole thing directly after fixes
+      try {
+        return JSON.parse(fixed);
+      } catch (e) {
+        // fall through to extraction-based strategies
+      }
+
       const extracted = _extractFirstJsonBlock(fixed);
       // If extraction failed (e.g. truncated response), try from first { to last }
       let truncated = null;
