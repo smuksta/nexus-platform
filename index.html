@@ -2368,9 +2368,7 @@
       return null;
     }
 
-    function _fixMissingCommas(s) {
-      return String(s);
-    }
+    function _fixMissingCommas(s) { return String(s); }
 
     function parseModelJsonOrThrow(text) {
       const raw = _stripModelFences(text);
