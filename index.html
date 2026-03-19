@@ -2374,26 +2374,28 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 - up to THREE biggest SHORT-TERM (0-3 months) risks for this user
 - up to THREE biggest LONG-TERM (6-18 months) structural risks
 
-For each, also give a concrete defence plan focused on what this person can actually do in real life (simple positioning, rough timing, or preparation steps). Avoid complex products or professional‑trader language.
+For each, give both a mainstream view (what economists/media say) and a shadow view (the deeper structural concern they avoid talking about), plus a simple, practical defence.
 
 IMPORTANT: nodeId values must be SHORT snake_case ids that exactly match one of these existing node IDs: hormuz, iran, israel, us_mil, russia, usd, fed, petrodollar, brics, inflation, stocks, oil, gold, silver, eu_energy, great_taking, cb_gold, bis, wef, cbdc, cash_ban, aus_fuel, aud, aus_rba, aus_prop, aus_const, super_aus, apra, ai_silver, solar — do NOT invent new node IDs.
 
 Respond ONLY with strict JSON, no markdown, no commentary:
 {
-  "shortTerm":[
+  "shortTerm": [
     {
-      "nodeId":"ID_FROM_LIST",
-      "headline":"very short line describing the risk",
-      "reason":"1-2 sentences on why this is a key near-term risk",
-      "defend":"1-2 sentences on how this user can defend against it in practical terms"
+      "nodeId": "ID",
+      "headline": "short headline",
+      "mainstream": "1-2 sentences — what mainstream economists and media say about this risk",
+      "shadow": "1-2 sentences — the deeper structural concern that mainstream won't say",
+      "defend": "1-2 sentences practical defence"
     }
   ],
-  "longTerm":[
+  "longTerm": [
     {
-      "nodeId":"ID_FROM_LIST",
-      "headline":"very short line describing the risk",
-      "reason":"1-2 sentences on why this is a key long-term risk",
-      "defend":"1-2 sentences on how this user can defend against it in practical terms"
+      "nodeId": "ID",
+      "headline": "short headline",
+      "mainstream": "1-2 sentences — what mainstream economists and media say about this risk",
+      "shadow": "1-2 sentences — the deeper structural concern that mainstream won't say",
+      "defend": "1-2 sentences practical defence"
     }
   ]
 }`;
@@ -2496,12 +2498,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           shortBox.style.display = 'block';
           shortBox.innerHTML = stList.map((item, idx) => {
             const h = item.headline || 'Short-term risk';
-            const why = item.reason || '';
+            const main = item.mainstream || item.reason || '';
+            const shad = item.shadow || '';
             const defend = item.defend || '';
             return `
               <div style="margin-bottom:10px">
                 <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-                <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+                ${main ? `<div style="font-size:11px;line-height:1.5;margin-bottom:4px;color:#FFFFFF">${main}</div>` : ''}
+                ${shad ? `<div style="font-size:11px;line-height:1.5;margin-bottom:6px;color:var(--purple)"><strong>SHADOW:</strong> ${shad}</div>` : ''}
                 <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
               </div>
             `;
@@ -2517,12 +2521,14 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           longBox.style.display = 'block';
           longBox.innerHTML = ltList.map((item, idx) => {
             const h = item.headline || 'Long-term risk';
-            const why = item.reason || '';
+            const main = item.mainstream || item.reason || '';
+            const shad = item.shadow || '';
             const defend = item.defend || '';
             return `
               <div style="margin-bottom:10px">
                 <div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-bottom:4px">${h}</div>
-                <div style="font-size:11px;line-height:1.5;margin-bottom:6px">${why}</div>
+                ${main ? `<div style="font-size:11px;line-height:1.5;margin-bottom:4px;color:#FFFFFF">${main}</div>` : ''}
+                ${shad ? `<div style="font-size:11px;line-height:1.5;margin-bottom:6px;color:var(--purple)"><strong>SHADOW:</strong> ${shad}</div>` : ''}
                 <div style="font-size:11px;line-height:1.5;color:var(--teal)"><strong>DEFEND:</strong> ${defend}</div>
               </div>
             `;
