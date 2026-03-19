@@ -2279,6 +2279,68 @@
       return String(s).replace(/,\s*([}\]])/g, '$1');
     }
 
+    // After position i, skip whitespace; return true if next non-ws is , } ] or end (closing quote)
+    function _looksLikeClosingQuote(str, i) {
+      while (i < str.length && /[\s\n\r\t]/.test(str[i])) i++;
+      return i >= str.length || /[}\]\,]/.test(str[i]);
+    }
+
+    // Fix unescaped newlines, tabs, and inner double-quotes inside JSON string values
+    function _fixNewlinesInJsonStrings(s) {
+      const str = String(s);
+      let out = '';
+      let inString = false;
+      let escaped = false;
+      let i = 0;
+      while (i < str.length) {
+        const c = str[i];
+        if (escaped) {
+          out += c;
+          escaped = false;
+          i++;
+          continue;
+        }
+        if (inString) {
+          if (c === '\\') {
+            escaped = true;
+            out += c;
+            i++;
+            continue;
+          }
+          if (c === '"') {
+            if (_looksLikeClosingQuote(str, i + 1)) {
+              inString = false;
+              out += c;
+            } else {
+              out += '\\"';
+            }
+            i++;
+            continue;
+          }
+          if (c === '\n') { out += '\\n'; i++; continue; }
+          if (c === '\r') { out += '\\r'; i++; continue; }
+          if (c === '\t') { out += '\\t'; i++; continue; }
+          if (c.charCodeAt(0) >= 0 && c.charCodeAt(0) <= 31) {
+            out += '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+            i++;
+            continue;
+          }
+          out += c;
+          i++;
+          continue;
+        }
+        if (c === '"') {
+          inString = true;
+          out += c;
+          i++;
+          continue;
+        }
+        out += c;
+        i++;
+      }
+      return out;
+    }
+
     function _extractFirstJsonBlock(s) {
       const str = String(s ?? '');
       const start = str.search(/[\{\[]/);
@@ -2310,12 +2372,23 @@
     function parseModelJsonOrThrow(text) {
       const raw = _stripModelFences(text);
       if (!raw) throw new Error('Empty response from model');
-      const extracted = _extractFirstJsonBlock(raw);
-      const candidates = extracted && extracted !== raw ? [raw, extracted] : [raw];
+      // Fix unescaped newlines in string values (common model mistake)
+      const rawFixed = _fixNewlinesInJsonStrings(raw);
+      const extracted = _extractFirstJsonBlock(rawFixed);
+      // If extraction failed (e.g. truncated response), try from first { to last }
+      let truncated = null;
+      if (!extracted) {
+        const firstBrace = rawFixed.indexOf('{');
+        const lastBrace = rawFixed.lastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+          truncated = rawFixed.slice(firstBrace, lastBrace + 1);
+        }
+      }
+      const candidates = [extracted, truncated, rawFixed].filter(Boolean);
 
       for (const c of candidates) {
-        try { return JSON.parse(c); } catch (e) { /* try cleaned version below */ }
-        try { return JSON.parse(_fixTrailingCommas(c)); } catch (e) { /* continue */ }
+        try { return JSON.parse(c); } catch (e) { /* try next */ }
+        try { return JSON.parse(_fixTrailingCommas(c)); } catch (e) { /* try next */ }
       }
 
       const snippet = raw.slice(0, 180).replace(/\s+/g, ' ');
@@ -2345,7 +2418,7 @@
 
         const [gold, oil, aud] = await Promise.all([
           tdQuote('XAU/USD'),
-          tdQuote('CL'),
+          tdQuote('CL1'),
           tdQuote('AUD/USD'),
         ]);
 
@@ -2440,8 +2513,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 400,
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 800,
             messages: [{ role: 'user', content: prompt }],
           }),
         });
@@ -2810,12 +2883,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       if (!toRemove.size) return;
 
-      const newNodes = [];
-      nodes.forEach((n, idx) => {
-        if (!toRemove.has(idx)) newNodes.push(n);
-        else if (anim[n.id]) delete anim[n.id];
+      // Remove by index in reverse order so indices stay valid (nodes is const, mutate in place)
+      [...toRemove].sort((a, b) => b - a).forEach(idx => {
+        if (anim[nodes[idx].id]) delete anim[nodes[idx].id];
+        nodes.splice(idx, 1);
       });
-      nodes = newNodes;
     }
 
     // Build index and normalise connections (graph integrity)
@@ -4007,10 +4079,6 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     </div>
   `;
     }
-
-
-    // Add search functionality to map search input with dimming of non-matching nodes
-    undefined
   </script>
 </body>
 
