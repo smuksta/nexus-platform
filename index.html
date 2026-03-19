@@ -2369,9 +2369,7 @@
     }
 
     function _fixMissingCommas(s) {
-      // Fix missing commas between JSON string values and the next key
-      // e.g. "value"\n  "key" should be "value",\n  "key"
-      return String(s).replace(/"(\s*)\n(\s*)"/g, '",\n$2"');
+      return String(s);
     }
 
     function parseModelJsonOrThrow(text) {
@@ -3450,7 +3448,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "shadow":"2-3 sentences on the less-discussed market dynamics and structural factors that analysts are watching",
   "money":"2-3 sentences on the specific financial impact for an Australian investor — which assets are affected and by how much",
   "act":{"immediate":"one action to consider in the next 48 hours","shortTerm":"one action for the next 2-4 weeks","longTerm":"one positioning idea for 6-18 months"},
-  "connectedInsights":{"${node.connections.slice(0, 3).join('":"one line market insight","')}":"one line market insight"},
+  "connectedInsights":["one line insight about connection 1","one line insight about connection 2","one line insight about connection 3"],
   "newNodes":[
     {"label":"short phrase for a new related bubble idea","type":"geo|financial|resource|shadow|policy|aus"},
     {"label":"optional second new bubble idea","type":"geo|financial|resource|shadow|policy|aus"}
@@ -3472,7 +3470,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         console.log('RAW RESPONSE:', raw);
         panelData = parseModelJsonOrThrow(raw);
         integrateNewNodesFromPanel(node, panelData);
-      } catch (e) { console.error('PANEL ERROR:', e); panelData = { why: 'Analysis unavailable: ' + e.message, shadow: '—', money: '—', act: '—', connectedInsights: {} }; }
+      } catch (e) { console.error('PANEL ERROR:', e); panelData = { why: 'Analysis unavailable: ' + e.message, shadow: '—', money: '—', act: '—' }; }
 
       document.getElementById('spLoading').style.display = 'none';
       document.getElementById('spContent').style.display = 'block';
