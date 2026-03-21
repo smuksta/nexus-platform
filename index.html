@@ -2694,8 +2694,10 @@
   <script>
     // ═══ CONFIG ═══
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
-    // Twelve Data: MUST be proxied by the worker (see worker-twelve-quote.example.js). Never put API keys in the browser.
-    const TWELVEDATA_QUOTE_PROXY = `${NEXUS_WORKER_URL}/twelve-quote`;
+    // Twelve Data — direct quote API (header + signal price hints). Paste your key below.
+    // Optional: proxy via worker instead (see worker-twelve-quote.example.js + README) to avoid exposing the key.
+    const TWELVEDATA_API_KEY = 'INSERT_TWELVEDATA_API_KEY_HERE';
+    const TWELVEDATA_QUOTE_URL = 'https://api.twelvedata.com/quote';
 
     // ═══ MODEL JSON PARSING (SIMPLIFIED) ═══
     function escHtml(s) {
@@ -2741,7 +2743,7 @@
     async function refreshLiveStats() {
       try {
         const symbols = ['XAU/USD', 'CL1', 'AUD/USD'];
-        const url = `${TWELVEDATA_QUOTE_PROXY}?symbol=${encodeURIComponent(symbols.join(','))}`;
+        const url = `${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbols.join(','))}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('QUOTE HTTP ' + res.status);
         const data = await res.json();
@@ -4251,7 +4253,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       const symbol = SIG_SYMBOL_MAP[asset];
       if (symbol) {
         try {
-          const priceRes = await fetch(`${TWELVEDATA_QUOTE_PROXY}?symbol=${encodeURIComponent(symbol)}`);
+          const priceRes = await fetch(`${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`);
           if (priceRes.ok) {
             const data = await priceRes.json();
             const close = data.close ?? data.price;

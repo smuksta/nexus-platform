@@ -29,10 +29,8 @@ It combines a **geopolitical/financial map**, **deep‑dive intel view**, and a 
     - `{ symbols: { TICKER: { price, change, changePct, high, low, open, prevClose } } }`
   - Uses:
     - `env.FINNHUB_API_KEY`
-- **Endpoint `/twelve-quote` (required for header + signals live prices)**
-  - `GET /twelve-quote?symbol=XAU/USD,CL1,AUD/USD` (comma-separated; matches [Twelve Data quote](https://twelvedata.com/docs#quote))
-  - Proxies to Twelve Data with **`env.TWELVEDATA_API_KEY`** (Workers secret). **Do not** put this key in `index.html`.
-  - See `worker-twelve-quote.example.js` for a drop-in handler to merge into your worker’s `fetch`.
+- **Twelve Data (header GOLD / OIL / AUD)** — by default the frontend calls Twelve Data **directly** with `TWELVEDATA_API_KEY` in `index.html` (replace `INSERT_TWELVEDATA_API_KEY_HERE`).  
+- **Optional `/twelve-quote` proxy** — to hide the key, add `GET /twelve-quote?symbol=...` on the worker using `worker-twelve-quote.example.js` and switch the frontend back to the proxy URL.
 
 ### Frontend dev notes
 
