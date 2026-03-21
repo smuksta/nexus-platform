@@ -1503,6 +1503,9 @@
 
     #urgentBody .sig-overview-text {
       margin-top: 8px;
+      max-height: min(70vh, 780px);
+      overflow-y: auto;
+      padding-right: 6px;
     }
 
     .urgent-risk-card {
@@ -1577,6 +1580,67 @@
 
     .urgent-defence-row .urgent-label {
       margin-bottom: 4px;
+    }
+
+    .urgent-risk-headline-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border2);
+    }
+
+    .urgent-risk-headline-row .urgent-risk-headline {
+      margin: 0;
+      padding: 0;
+      border: none;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .urgent-urgency-pill {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(201, 168, 76, 0.12);
+      color: var(--gold);
+      border: 1px solid rgba(201, 168, 76, 0.35);
+      white-space: nowrap;
+    }
+
+    .urgent-map-hint {
+      font-size: 10px;
+      color: var(--muted2);
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      border-left: 2px solid var(--gold);
+    }
+
+    .urgent-checklist {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    .urgent-checklist li {
+      margin-bottom: 6px;
+    }
+
+    .urgent-checklist--action {
+      color: var(--teal);
+    }
+
+    .urgent-checklist--action li::marker {
+      color: var(--teal);
     }
 
     @media (max-width: 720px) {
@@ -2454,18 +2518,28 @@
       riskHighlights.shortTerm = shortNode ? [{
         nodeId: shortNode.id,
         headline: 'Hormuz / oil supply shock',
+        urgencyScore: 78,
+        hitsYou: 'Anyone who drives, heats a home, or buys shipped goods — costs move within weeks.',
+        confirmWith: ['Local unleaded price vs last month', 'Freight or grocery staples you buy every week', 'Headlines on Hormuz / shipping insurance'],
         official: 'Tighter shipping lanes and higher oil prices can quickly show up in everyday fuel costs and delivery prices.',
         shadow: 'Supply chains and refining capacity are structurally tight; geopolitical events amplify volatility that mainstream framing underplays.',
         defendOfficial: 'Keep extra cash on hand, avoid fixed‑price jobs or expenses that ignore rising fuel costs, and consider simple ways to reduce fuel use.',
-        defendShadow: 'Hedge transport and energy exposure; consider tangible and non‑correlated assets if dollar and policy regimes shift.'
+        defendShadow: 'Hedge transport and energy exposure; consider tangible and non‑correlated assets if dollar and policy regimes shift.',
+        doNext: ['Check your next fuel fill price and note it', 'Delay non‑urgent long drives or bulk orders if prices spike', 'Keep a small cash buffer for two weeks of higher transport costs'],
+        revisit: 'After the next major shipping or oil headline, or if pump prices jump two weeks in a row.'
       }] : [];
       riskHighlights.longTerm = longNode ? [{
         nodeId: longNode.id,
         headline: 'Policy and money system risk',
+        urgencyScore: 62,
+        hitsYou: 'Savers, mortgage holders, and anyone relying on super or bank rules staying stable.',
+        confirmWith: ['RBA / Treasury mentions of CBDC or digital dollar trials', 'Any super “stapling” or access rule changes', 'Cash withdrawal limits at your bank'],
         official: 'Slow‑burn changes in cash access, CBDCs and super rules can reshape how savings and contracts behave over years.',
         shadow: 'Monetary and regulatory convergence may reduce optionality; mainstream narrative focuses on convenience, not sovereignty of choice.',
         defendOfficial: 'Diversify between bank deposits, physical assets and flexible contract structures so you are not trapped in one policy regime.',
-        defendShadow: 'Maintain access to non‑digital and cross‑border options; stay informed on CBDC and super rule changes.'
+        defendShadow: 'Maintain access to non‑digital and cross‑border options; stay informed on CBDC and super rule changes.',
+        doNext: ['Read one plain‑English explainer on CBDC vs cash (15 min)', 'List where your wealth sits: bank, super, property — note lock‑in', 'Talk to your super fund about investment options you actually understand'],
+        revisit: 'Quarterly, or whenever Parliament discusses digital currency or super reforms.'
       }] : [];
     }
 
@@ -2477,8 +2551,8 @@
       }
       try {
         const summary = nodes
-          .slice(0, 80)
-          .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace('\n', ' ')} [${n.type}]`)
+          .slice(0, 120)
+          .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace(/\n/g, ' ')} [${n.type}]`)
           .join(', ');
         const prompt = `You are NEXUS, an early-warning system for a regular person who wants to protect their money and way of life (with an Australian lens by default). Use clear, simple language that a non‑financial person can understand. Avoid jargon and complex terms; explain things like you would to a smart friend at the pub.
 
@@ -2486,10 +2560,21 @@ Here is the current map of key nodes (id:label[type]):
 ${summary}
 
 From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hormuz disruptions, USD weakening, AUD under pressure), pick:
-- up to THREE biggest SHORT-TERM (0-3 months) risks for this user
-- up to THREE biggest LONG-TERM (6-18 months) structural risks
+- up to FIVE distinct SHORT-TERM (0-3 months) risks — prioritise what can move household budgets, fuel, food, AUD, rates, or markets quickly.
+- up to FIVE distinct LONG-TERM (6-18 months) structural risks — policy, super, housing, currency blocks, CBDC/cash, institutions.
 
-For each risk item, return: headline, official view (mainstream economists/media), shadow field as a sharper alarmist / contrarian read — still plausible, not cartoonish, but deliberately starker than TV — on what could go wrong structurally, defendOfficial (practical defence if the mainstream story is right), defendShadow (practical defence if the alarmist read is closer).
+Cast a wide net: include second-order risks (e.g. knock-on from oil to groceries) and do not only repeat the same theme — use different nodeIds where possible. Rank by real-world urgency for an ordinary Australian household.
+
+For each risk item include:
+- urgencyScore: integer 1-100 (higher = more urgent for this user right now)
+- hitsYou: one sentence — who feels this first (renters, drivers, savers, etc.)
+- confirmWith: array of 3-4 short strings — concrete things they can check this week (prices, headlines, personal bills) to see if the risk is real for them
+- official: mainstream economists/media view
+- shadow: sharper alarmist / contrarian read — plausible, not cartoonish, starker than TV
+- defendOfficial: practical defence if the mainstream story is right
+- defendShadow: practical defence if the alarmist read is closer
+- doNext: array of 3-4 short strings — specific next steps (actions, not philosophy) so the user knows what to do
+- revisit: one sentence — when to re-check or rescan this risk
 
 IMPORTANT: nodeId values must be SHORT snake_case ids that exactly match one of these existing node IDs: hormuz, iran, israel, us_mil, russia, usd, fed, petrodollar, brics, inflation, stocks, oil, gold, silver, eu_energy, great_taking, cb_gold, bis, wef, cbdc, cash_ban, aus_fuel, aud, aus_rba, aus_prop, aus_const, super_aus, apra, ai_silver, solar — do NOT invent new node IDs.
 
@@ -2499,20 +2584,30 @@ Respond ONLY with strict JSON, no markdown, no commentary:
     {
       "nodeId": "id",
       "headline": "short title",
-      "official": "what mainstream economists and media say",
-      "shadow": "alarmist / contrarian read — starker structural downside mainstream won't cover",
-      "defendOfficial": "practical defence if mainstream is right",
-      "defendShadow": "practical defence if alarmist read is closer"
+      "urgencyScore": 85,
+      "hitsYou": "one sentence",
+      "confirmWith": ["check 1", "check 2", "check 3"],
+      "official": "mainstream view",
+      "shadow": "alarmist / contrarian read",
+      "defendOfficial": "if mainstream is right",
+      "defendShadow": "if alarmist read is closer",
+      "doNext": ["step 1", "step 2", "step 3"],
+      "revisit": "when to reassess"
     }
   ],
   "longTerm": [
     {
       "nodeId": "id",
       "headline": "short title",
-      "official": "what mainstream economists and media say",
-      "shadow": "alarmist / contrarian read — starker structural downside mainstream won't cover",
-      "defendOfficial": "practical defence if mainstream is right",
-      "defendShadow": "practical defence if alarmist read is closer"
+      "urgencyScore": 70,
+      "hitsYou": "one sentence",
+      "confirmWith": ["check 1", "check 2", "check 3"],
+      "official": "mainstream view",
+      "shadow": "alarmist / contrarian read",
+      "defendOfficial": "if mainstream is right",
+      "defendShadow": "if alarmist read is closer",
+      "doNext": ["step 1", "step 2", "step 3"],
+      "revisit": "when to reassess"
     }
   ]
 }`;
@@ -2522,7 +2617,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 2000,
+            max_tokens: 6000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
             messages: [{ role: 'user', content: prompt }],
           }),
@@ -2536,8 +2631,12 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         }
         const stParsed = parsed.shortTerm;
         const ltParsed = parsed.longTerm;
-        riskHighlights.shortTerm = Array.isArray(stParsed) ? stParsed.filter(x => x && x.nodeId) : (stParsed && stParsed.nodeId ? [stParsed] : []);
-        riskHighlights.longTerm = Array.isArray(ltParsed) ? ltParsed.filter(x => x && x.nodeId) : (ltParsed && ltParsed.nodeId ? [ltParsed] : []);
+        const normRiskList = (raw) => {
+          const arr = Array.isArray(raw) ? raw.filter(x => x && x.nodeId) : (raw && raw.nodeId ? [raw] : []);
+          return arr.sort((a, b) => (Number(b.urgencyScore) || 0) - (Number(a.urgencyScore) || 0));
+        };
+        riskHighlights.shortTerm = normRiskList(stParsed);
+        riskHighlights.longTerm = normRiskList(ltParsed);
         if (!riskHighlights.shortTerm.length && !riskHighlights.longTerm.length) {
           // If the model responded but gave us nothing usable, fall back
           fallbackRiskHighlights();
@@ -2593,13 +2692,18 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         return item;
       };
 
-      if (st && st.nodeId) {
-        el.appendChild(makeItem(st.nodeId, 'NOW', st.headline, 'Short-term risk'));
+      stList.slice(0, 4).forEach((row, i) => {
+        if (!row || !row.nodeId) return;
+        const tag = i === 0 ? 'NOW' : 'S' + (i + 1);
+        el.appendChild(makeItem(row.nodeId, tag, row.headline, 'Short-term risk'));
         el.appendChild(document.createTextNode('   '));
-      }
-      if (lt && lt.nodeId) {
-        el.appendChild(makeItem(lt.nodeId, '6-18M', lt.headline, 'Long-term risk'));
-      }
+      });
+      ltList.slice(0, 3).forEach((row, i) => {
+        if (!row || !row.nodeId) return;
+        const tag = i === 0 ? '6-18M' : 'L' + (i + 1);
+        el.appendChild(makeItem(row.nodeId, tag, row.headline, 'Long-term risk'));
+        el.appendChild(document.createTextNode('   '));
+      });
 
       // Also refresh the URGENT view if it exists
       const shortBox = document.getElementById('urgentShort');
@@ -2609,31 +2713,88 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       const lastScan = document.getElementById('urgentLastScan');
       const nowStr = new Date().toUTCString().slice(5, 22);
       if (lastScan) lastScan.textContent = 'LAST SCAN: ' + nowStr;
+
+      const esc = s => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      const normStrList = x => {
+        if (x == null) return [];
+        if (Array.isArray(x)) return x.map(String).map(t => t.trim()).filter(Boolean);
+        if (typeof x === 'string') {
+          return x.split(/\n|;|•/).map(t => t.trim()).filter(Boolean);
+        }
+        return [];
+      };
+
       const renderRiskCard = (item, defaultHeadline) => {
         const h = item.headline || defaultHeadline;
         const official = item.official || item.mainstream || item.reason || '';
         const shadow = item.shadow || '';
         const defendOfficial = item.defendOfficial || item.defend || '';
         const defendShadow = item.defendShadow || '';
+        const hitsYou = item.hitsYou || '';
+        const revisit = item.revisit || '';
+        const confirmWith = normStrList(item.confirmWith);
+        const doNext = normStrList(item.doNext);
+        const score = item.urgencyScore != null && item.urgencyScore !== '' ? Number(item.urgencyScore) : null;
+        const scorePill = score != null && !Number.isNaN(score)
+          ? `<span class="urgent-urgency-pill">URGENCY ${esc(String(Math.min(100, Math.max(0, Math.round(score)))))}/100</span>`
+          : '';
+        const n = nodes.find(x => x.id === item.nodeId);
+        const mapLab = n ? String((n.fullLabel || n.label || n.id)).replace(/\n/g, ' ').trim() : '';
+        const mapHint = mapLab
+          ? `<div class="urgent-map-hint">Related map node: <strong>${esc(mapLab)}</strong> — click this row in the alert bar or the bubble on the map for the full panel.</div>`
+          : '';
+        const confirmHtml = confirmWith.length
+          ? `<ul class="urgent-checklist">${confirmWith.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`
+          : `<p class="urgent-text">—</p>`;
+        const doNextHtml = doNext.length
+          ? `<ul class="urgent-checklist urgent-checklist--action">${doNext.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`
+          : `<p class="urgent-text urgent-text--teal">—</p>`;
         return `
           <div class="urgent-risk-card">
-            <div class="urgent-risk-headline">${h}</div>
+            <div class="urgent-risk-headline-row">
+              <div class="urgent-risk-headline">${esc(h)}</div>
+              ${scorePill}
+            </div>
+            ${mapHint}
+            <div class="urgent-block">
+              <div class="urgent-label">Who this hits first</div>
+              <p class="urgent-text">${hitsYou ? esc(hitsYou) : '—'}</p>
+            </div>
+            <div class="urgent-block">
+              <div class="urgent-label">How to confirm (this week)</div>
+              ${confirmHtml}
+            </div>
             <div class="urgent-block">
               <div class="urgent-label">Mainstream take</div>
-              <p class="urgent-text">${official || '—'}</p>
+              <p class="urgent-text">${official ? esc(official) : '—'}</p>
             </div>
             <div class="urgent-block">
               <div class="urgent-label urgent-label--alarmist">Alarmist read (what they won’t say)</div>
-              <p class="urgent-text urgent-text--alarmist">${shadow || '—'}</p>
+              <p class="urgent-text urgent-text--alarmist">${shadow ? esc(shadow) : '—'}</p>
             </div>
             <div class="urgent-defence-row">
               <div class="urgent-block">
                 <div class="urgent-label" style="color:var(--teal)">If the mainstream story is right</div>
-                <p class="urgent-text urgent-text--teal">${defendOfficial || '—'}</p>
+                <p class="urgent-text urgent-text--teal">${defendOfficial ? esc(defendOfficial) : '—'}</p>
               </div>
               <div class="urgent-block" style="margin-top:12px;margin-bottom:0">
                 <div class="urgent-label urgent-label--alarmist">If the alarmist read is closer</div>
-                <p class="urgent-text urgent-text--purple">${defendShadow || '—'}</p>
+                <p class="urgent-text urgent-text--purple">${defendShadow ? esc(defendShadow) : '—'}</p>
+              </div>
+            </div>
+            <div class="urgent-defence-row" style="border-top-style:solid">
+              <div class="urgent-block">
+                <div class="urgent-label" style="color:var(--gold)">Concrete next steps</div>
+                ${doNextHtml}
+              </div>
+              <div class="urgent-block" style="margin-top:12px;margin-bottom:0">
+                <div class="urgent-label">Revisit when</div>
+                <p class="urgent-text">${revisit ? esc(revisit) : '—'}</p>
               </div>
             </div>
           </div>
