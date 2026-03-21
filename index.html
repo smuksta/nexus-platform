@@ -3485,23 +3485,46 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       } return null;
     }
 
-    // Touch: only open panel on tap (no drag). Track movement to distinguish.
+    // Touch / mouse: open panel only on tap (no drag). Same threshold for both.
     let touchTapNode = null, touchStartX = 0, touchStartY = 0, touchMoved = false;
+    let pendingClickNode = null, pointerDownClientX = 0, pointerDownClientY = 0, pointerHasDragged = false;
     const TAP_DRAG_THRESHOLD_PX = 14;
 
     canvas.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
       const { x, y } = canvasCoords(e.clientX, e.clientY);
       const n = nodeAt(x, y);
-      if (n) { openPanel(n); } else { isDrag = true; lmx = e.clientX; lmy = e.clientY; }
+      if (n) {
+        pendingClickNode = n;
+        pointerDownClientX = e.clientX;
+        pointerDownClientY = e.clientY;
+        pointerHasDragged = false;
+      } else {
+        pendingClickNode = null;
+        pointerHasDragged = false;
+        isDrag = true;
+        lmx = e.clientX;
+        lmy = e.clientY;
+      }
     });
 
     canvas.addEventListener('mousemove', e => {
       const { x, y } = canvasCoords(e.clientX, e.clientY);
+      if (pendingClickNode && !pointerHasDragged) {
+        const dx = e.clientX - pointerDownClientX;
+        const dy = e.clientY - pointerDownClientY;
+        if (dx * dx + dy * dy > TAP_DRAG_THRESHOLD_PX * TAP_DRAG_THRESHOLD_PX) {
+          pointerHasDragged = true;
+          isDrag = true;
+          lmx = e.clientX;
+          lmy = e.clientY;
+        }
+      }
       const n = nodeAt(x, y);
       hovNode = n;
       const tt = document.getElementById('mapTooltip');
       if (n) {
-        canvas.style.cursor = 'pointer';
+        canvas.style.cursor = (isDrag || pointerHasDragged) ? 'grabbing' : 'pointer';
         tt.style.display = 'block';
         tt.style.left = (e.clientX + 14) + 'px';
         tt.style.top = (e.clientY - 50) + 'px';
@@ -3516,7 +3539,13 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       if (isDrag) { tvx += (e.clientX - lmx) / sc; tvy += (e.clientY - lmy) / sc; lmx = e.clientX; lmy = e.clientY; }
     });
 
-    canvas.addEventListener('mouseup', () => isDrag = false);
+    window.addEventListener('mouseup', e => {
+      if (e.button !== 0) return;
+      if (pendingClickNode && !pointerHasDragged) openPanel(pendingClickNode);
+      pendingClickNode = null;
+      pointerHasDragged = false;
+      isDrag = false;
+    });
     canvas.addEventListener('mouseleave', () => { isDrag = false; document.getElementById('mapTooltip').style.display = 'none'; });
     canvas.addEventListener('wheel', e => { e.preventDefault(); tsc = Math.max(0.25, Math.min(3, tsc * (e.deltaY > 0 ? .88 : 1.12))); }, { passive: false });
 
@@ -3544,7 +3573,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         if (!touchMoved) {
           const dx = t.clientX - touchStartX;
           const dy = t.clientY - touchStartY;
-          if (dx * dx + dy * dy > TAP_DRAG_THRESHOLD_PX * TAP_DRAG_THRESHOLD_PX) touchMoved = true;
+          if (dx * dx + dy * dy > TAP_DRAG_THRESHOLD_PX * TAP_DRAG_THRESHOLD_PX) {
+          touchMoved = true;
+        }
         }
         tvx += (t.clientX - lmx) / sc;
         tvy += (t.clientY - lmy) / sc;
