@@ -43,7 +43,13 @@ It combines a **geopolitical/financial map**, **deep‑dive intel view**, and a 
 
 ### Mobile (iPhone)
 
-There is **one responsive** `index.html` — no separate native app or second HTML file. Safari uses `viewport-fit=cover`, safe-area insets (notch / home indicator), and `layoutChrome()` measures the real header + alert bar height so the map and slide panel sit below them. Intel inputs use **16px** font on small screens to reduce iOS zoom-on-focus. Add to Home Screen works via `apple-mobile-web-app-capable`.
+There is **one responsive** `index.html` — no separate native app or second HTML file.
+
+- **No whole-page scroll:** `body` stays `overflow: hidden` (app shell). **Intel**, **Signals**, **Urgent**, and the **slide panel** scroll inside their own regions (`.intel-body`, `.signals-body`, `#urgentBody`, `.sp-body`).
+- **iOS flexbox quirk:** Those scroll areas use **`min-height: 0`** on flex children so **`overflow-y: auto` actually works** in Safari (otherwise content grows and nothing scrolls).
+- **Smooth scrolling:** `-webkit-overflow-scrolling: touch`, `overscroll-behavior-y: contain`, and `touch-action: pan-y` on scrollers; **`100dvh`** + **`-webkit-fill-available`** for height; `layoutChrome()` + **`visualViewport`** resize for toolbar / safe-area changes.
+- **Safe areas:** `viewport-fit=cover` and `env(safe-area-inset-*)` on header, bar, and views.
+- **16px** inputs on small screens to limit iOS zoom-on-focus. Add to Home Screen: `apple-mobile-web-app-capable`.
 
 ### Session log / ideas
 
