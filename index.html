@@ -1482,10 +1482,107 @@
       font-size: 10px;
     }
 
-    /* Make URGENT tab text larger for readability */
+    /* URGENT tab: two columns for time horizons only; cards read top-to-bottom */
+    #urgentBody.sig-overview {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 14px 28px 20px;
+    }
+
     #urgentBody {
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.55;
+      font-family: var(--body);
+    }
+
+    #urgentBody .sig-overview-card {
+      padding: 14px 16px;
+      min-height: 0;
+      border-radius: 6px;
+    }
+
+    #urgentBody .sig-overview-text {
+      margin-top: 8px;
+    }
+
+    .urgent-risk-card {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .urgent-risk-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .urgent-risk-headline {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      margin: 0 0 12px 0;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border2);
+    }
+
+    .urgent-block {
+      margin-bottom: 12px;
+    }
+
+    .urgent-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .urgent-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      margin-bottom: 6px;
+    }
+
+    .urgent-label--alarmist {
+      color: #A78BFA;
+    }
+
+    .urgent-text {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    .urgent-text--alarmist {
+      color: #C4B5FD;
+      border-left: 3px solid #8B5CF6;
+      padding-left: 12px;
+    }
+
+    .urgent-text--teal {
+      color: var(--teal);
+    }
+
+    .urgent-text--purple {
+      color: #A78BFA;
+    }
+
+    .urgent-defence-row {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border2);
+    }
+
+    .urgent-defence-row .urgent-label {
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 720px) {
+      #urgentBody.sig-overview {
+        grid-template-columns: 1fr;
+      }
     }
 
     .sig-overview-card {
@@ -2128,7 +2225,7 @@
     <div class="signals-header">
       <div>
         <div class="signals-title">‼ URGENT — DEFENCE FIRST</div>
-        <div class="signals-sub">WHAT HITS YOU HARDEST · HOW TO DEFEND</div>
+        <div class="signals-sub">MAINSTREAM TAKE · ALARMIST READ · THEN WHAT TO DO</div>
       </div>
       <div style="font-family:var(--mono);font-size:10px;color:var(--muted2)" id="urgentLastScan">LAST SCAN: —</div>
     </div>
@@ -2392,7 +2489,7 @@ From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hor
 - up to THREE biggest SHORT-TERM (0-3 months) risks for this user
 - up to THREE biggest LONG-TERM (6-18 months) structural risks
 
-For each risk item, return: headline, official view (mainstream economists/media), shadow view (deeper structural concern they avoid), defendOfficial (practical defence from conventional wisdom), defendShadow (defence from the more informed alternative perspective).
+For each risk item, return: headline, official view (mainstream economists/media), shadow field as a sharper alarmist / contrarian read — still plausible, not cartoonish, but deliberately starker than TV — on what could go wrong structurally, defendOfficial (practical defence if the mainstream story is right), defendShadow (practical defence if the alarmist read is closer).
 
 IMPORTANT: nodeId values must be SHORT snake_case ids that exactly match one of these existing node IDs: hormuz, iran, israel, us_mil, russia, usd, fed, petrodollar, brics, inflation, stocks, oil, gold, silver, eu_energy, great_taking, cb_gold, bis, wef, cbdc, cash_ban, aus_fuel, aud, aus_rba, aus_prop, aus_const, super_aus, apra, ai_silver, solar — do NOT invent new node IDs.
 
@@ -2403,9 +2500,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       "nodeId": "id",
       "headline": "short title",
       "official": "what mainstream economists and media say",
-      "shadow": "the deeper structural concern mainstream won't cover",
-      "defendOfficial": "practical defence from conventional wisdom",
-      "defendShadow": "defence from the more informed alternative perspective"
+      "shadow": "alarmist / contrarian read — starker structural downside mainstream won't cover",
+      "defendOfficial": "practical defence if mainstream is right",
+      "defendShadow": "practical defence if alarmist read is closer"
     }
   ],
   "longTerm": [
@@ -2413,9 +2510,9 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       "nodeId": "id",
       "headline": "short title",
       "official": "what mainstream economists and media say",
-      "shadow": "the deeper structural concern mainstream won't cover",
-      "defendOfficial": "practical defence from conventional wisdom",
-      "defendShadow": "defence from the more informed alternative perspective"
+      "shadow": "alarmist / contrarian read — starker structural downside mainstream won't cover",
+      "defendOfficial": "practical defence if mainstream is right",
+      "defendShadow": "practical defence if alarmist read is closer"
     }
   ]
 }`;
@@ -2519,26 +2616,24 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         const defendOfficial = item.defendOfficial || item.defend || '';
         const defendShadow = item.defendShadow || '';
         return `
-          <div class="risk-card" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:14px 18px;margin-bottom:14px">
-            <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:var(--gold);margin-bottom:12px">${h}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px">
-              <div>
-                <div style="font-size:10px;letter-spacing:1px;color:var(--muted2);margin-bottom:4px">OFFICIAL VIEW</div>
-                <div style="font-size:12px;line-height:1.5;color:#FFFFFF">${official || '—'}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;letter-spacing:1px;color:#8B5CF6;margin-bottom:4px">SHADOW VIEW</div>
-                <div style="font-size:12px;line-height:1.5;color:#8B5CF6">${shadow || '—'}</div>
-              </div>
+          <div class="urgent-risk-card">
+            <div class="urgent-risk-headline">${h}</div>
+            <div class="urgent-block">
+              <div class="urgent-label">Mainstream take</div>
+              <p class="urgent-text">${official || '—'}</p>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px">
-              <div>
-                <div style="font-size:10px;letter-spacing:1px;color:var(--teal);margin-bottom:4px">MAINSTREAM DEFENCE</div>
-                <div style="font-size:12px;line-height:1.5;color:var(--teal)">${defendOfficial || '—'}</div>
+            <div class="urgent-block">
+              <div class="urgent-label urgent-label--alarmist">Alarmist read (what they won’t say)</div>
+              <p class="urgent-text urgent-text--alarmist">${shadow || '—'}</p>
+            </div>
+            <div class="urgent-defence-row">
+              <div class="urgent-block">
+                <div class="urgent-label" style="color:var(--teal)">If the mainstream story is right</div>
+                <p class="urgent-text urgent-text--teal">${defendOfficial || '—'}</p>
               </div>
-              <div>
-                <div style="font-size:10px;letter-spacing:1px;color:#8B5CF6;margin-bottom:4px">SHADOW DEFENCE</div>
-                <div style="font-size:12px;line-height:1.5;color:#8B5CF6">${defendShadow || '—'}</div>
+              <div class="urgent-block" style="margin-top:12px;margin-bottom:0">
+                <div class="urgent-label urgent-label--alarmist">If the alarmist read is closer</div>
+                <p class="urgent-text urgent-text--purple">${defendShadow || '—'}</p>
               </div>
             </div>
           </div>
