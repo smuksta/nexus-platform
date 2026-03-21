@@ -41,6 +41,10 @@ It combines a **geopolitical/financial map**, **deep‑dive intel view**, and a 
 - Views:
   - `setMode('map' | 'intel' | 'signals')` toggles between MAP, INTEL, and SIGNALS.
 
+### Mobile (iPhone)
+
+There is **one responsive** `index.html` — no separate native app or second HTML file. Safari uses `viewport-fit=cover`, safe-area insets (notch / home indicator), and `layoutChrome()` measures the real header + alert bar height so the map and slide panel sit below them. Intel inputs use **16px** font on small screens to reduce iOS zoom-on-focus. Add to Home Screen works via `apple-mobile-web-app-capable`.
+
 ### Session log / ideas
 
 Use this section to jot quick notes after each build session so future work is easy to resume.
