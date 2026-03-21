@@ -2147,15 +2147,15 @@
     <div class="header-stats">
       <div class="stat-item">
         <div class="stat-label">GOLD XAU/USD</div>
-        <div class="stat-value" id="statGold">$5,037</div>
+        <div class="stat-value" id="statGold">—</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">CRUDE OIL</div>
-        <div class="stat-value" id="statOil" style="color:var(--teal)">$107.59</div>
+        <div class="stat-value" id="statOil">—</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">AUD/USD</div>
-        <div class="stat-value" id="statAUD" style="color:var(--red)">0.6240</div>
+        <div class="stat-value" id="statAUD">—</div>
       </div>
       <div class="live-indicator">
         <div class="live-dot"></div>
@@ -2250,7 +2250,7 @@
       <div class="chip"
         onclick="intelChip('Oil spike above $107 — downstream impact on Australia and ceiling before intervention')">🛢
         Oil spike</div>
-      <div class="chip" onclick="intelChip('Gold at $5000+ ATH — how long does this run and what breaks it')">🥇 Gold
+      <div class="chip" onclick="intelChip('Gold at current spot — trend, risks, and what could break the move')">🥇 Gold
         ATH</div>
       <div class="chip" onclick="intelChip('Strait of Hormuz closure — Australian fuel shortage timeline and impact')">
         🚢 Hormuz</div>
@@ -2465,6 +2465,8 @@
     // We normalise everything to arrays: [{ nodeId, headline, reason, defend }, ...]
     const riskHighlights = { shortTerm: [], longTerm: [] };
     let searchQuery = '';
+    // Filled by refreshLiveStats() from Twelve Data — prompts use this so AI copy matches the header, not stale training prices.
+    let LIVE_MARKET_SNAPSHOT = 'Live quotes for gold, oil, and AUD load in the app header. Anchor any level-based commentary to those spots when the user opens the app — never assume a fixed gold price from old training data.';
 
     // ═══ CLOCK ═══
     setInterval(() => {
@@ -2503,6 +2505,18 @@
         applyQuote(goldQ, goldEl, v => '$' + Number(v).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'GOLD');
         applyQuote(oilQ, oilEl, v => '$' + Number(v).toFixed(2), 'OIL');
         applyQuote(audQ, audEl, v => Number(v).toFixed(4), 'AUD');
+
+        const fmtGoldN = v => '$' + Number(v).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        const gN = goldQ && goldQ.close != null ? Number(goldQ.close) : null;
+        const oN = oilQ && oilQ.close != null ? Number(oilQ.close) : null;
+        const aN = audQ && audQ.close != null ? Number(audQ.close) : null;
+        const snapParts = [];
+        if (gN != null && isFinite(gN)) snapParts.push(`spot gold (XAU/USD) ${fmtGoldN(gN)}`);
+        if (oN != null && isFinite(oN)) snapParts.push(`WTI crude ${oN.toFixed(2)} USD`);
+        if (aN != null && isFinite(aN)) snapParts.push(`AUD/USD ${aN.toFixed(4)}`);
+        if (snapParts.length) {
+          LIVE_MARKET_SNAPSHOT = `Live market anchors (Twelve Data, same as the app header): ${snapParts.join('; ')}. Treat these as ground truth for spot levels — do not cite outdated assumed prices (e.g. gold at $5000) unless you explicitly say that was a past scenario. Oil and FX move daily; relate narratives to these numbers.`;
+        }
       } catch (e) {
         console.error('LIVE STATS ERROR (Twelve Data):', e);
       }
@@ -2550,6 +2564,7 @@
         barEl.textContent = 'Scanning map for biggest near-term and long-term risks...';
       }
       try {
+        try { await refreshLiveStats(); } catch (_) { /* header may still show last good values */ }
         const summary = nodes
           .slice(0, 120)
           .map(n => `${n.id}:${(n.fullLabel || n.label || '').replace(/\n/g, ' ')} [${n.type}]`)
@@ -2559,7 +2574,10 @@
 Here is the current map of key nodes (id:label[type]):
 ${summary}
 
-From ONLY this list and the March 2026 context (gold ~$5000, oil above $100, Hormuz disruptions, USD weakening, AUD under pressure), pick:
+From ONLY this list and the current macro backdrop below, pick:
+${LIVE_MARKET_SNAPSHOT}
+
+Thematic backdrop (adjust severity to fit the live numbers above): Middle East / energy and shipping stress, USD and AUD volatility, inflation and policy debates. Do not treat gold as if it were still ~$5000 unless the live snapshot shows that.
 - up to FIVE distinct SHORT-TERM (0-3 months) risks — prioritise what can move household budgets, fuel, food, AUD, rates, or markets quickly.
 - up to FIVE distinct LONG-TERM (6-18 months) structural risks — policy, super, housing, currency blocks, CBDC/cash, institutions.
 
@@ -3608,13 +3626,20 @@ Respond ONLY with strict JSON, no markdown, no commentary:
       spTab('why', false);
 
       try {
+        try { await refreshLiveStats(); } catch (_) { }
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "claude-sonnet-4-20250514", max_tokens: 2000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
             messages: [{
-              role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" in the context of March 2026 global markets: elevated gold prices (~$5000), oil above $100, Middle East supply disruptions, USD weakness, Australian dollar under pressure. The reader is a regular person (with an Australian lens by default) who wants to understand risks and protect their savings and lifestyle. Use simple language, avoid finance jargon, and explain ideas like you would to a smart friend who does not work in markets.
+              role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" using the live market snapshot and thematic backdrop below.
+
+${LIVE_MARKET_SNAPSHOT}
+
+Broader themes: Middle East / energy and shipping, USD and AUD dynamics, inflation and RBA/Fed policy, Australian household and investor concerns. Ground any price talk in the live snapshot above; do not assume fictional fixed levels from training data.
+
+The reader is a regular person (with an Australian lens by default) who wants to understand risks and protect their savings and lifestyle. Use simple language, avoid finance jargon, and explain ideas like you would to a smart friend who does not work in markets.
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
@@ -3717,7 +3742,11 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       loadIdx = 0;
       loadTimer = setInterval(() => { document.getElementById('intelLoadingText').textContent = loadMsgs[loadIdx++ % loadMsgs.length]; }, 900);
 
-      const sys = `You are a macro market analyst providing financial education. Context: March 2026, gold elevated ~$5000, oil above $100, Middle East supply disruptions affecting shipping, USD weakening, AUD under pressure, Australian property market uncertain, RBA navigating inflation.
+      const sys = `You are a macro market analyst providing financial education.
+
+${LIVE_MARKET_SNAPSHOT}
+
+Thematic context: Middle East / energy and shipping stress, USD and AUD volatility, Australian property and inflation debates, RBA navigating inflation. Use the live snapshot for spot levels; never contradict it with stale assumed prices.
 
 The reader is a regular person (with an Australian lens by default) seeking clear, simple guidance on what is happening and how it might affect their money and life.
 
@@ -3739,6 +3768,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 }`;
 
       try {
+        try { await refreshLiveStats(); } catch (_) { }
         const res = await fetch(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -3893,7 +3923,11 @@ Respond ONLY with valid JSON (no markdown, no backticks):
           }
         } catch (e) { /* skip price fetch */ }
       }
-      const prompt = `You are a macro market analyst. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. The reader is a regular person (with an Australian lens by default) who wants simple, clear guidance. Avoid jargon and complex products — explain ideas in plain English.${priceContext}
+      const prompt = `You are a macro market analyst.
+
+${LIVE_MARKET_SNAPSHOT}
+
+Broader themes: energy/geopolitics, USD/AUD, inflation and policy. The reader is a regular person (with an Australian lens by default) who wants simple, clear guidance. Avoid jargon and complex products — explain ideas in plain English.${priceContext}
 Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact structure (no markdown, no extra commentary):
 {"asset":"ASSET_SYMBOL","confluenceScore":NUMBER_0_100,"signal":"ONE_OF_STRONG_BUY_BUY_WATCH_AVOID_SHORT","entryZone":{"low":"PRICE_RANGE_LOW","high":"PRICE_RANGE_HIGH","note":"SHORT_NOTE"},"target1":{"price":"TARGET1_PRICE","pct":"TARGET1_PCT_MOVE","note":"TARGET1_NOTE"},"target2":{"price":"TARGET2_PRICE","pct":"TARGET2_PCT_MOVE","note":"TARGET2_NOTE"},"stopLoss":{"price":"STOP_PRICE","pct":"STOP_PCT_MOVE","note":"STOP_NOTE"},"factors":[{"name":"FACTOR_NAME","score":NUMBER_0_100,"color":"HEX_COLOR"}],"confluence":[{"factor":"FACTOR_LABEL","aligned":true,"note":"BRIEF_REASON"}],"thesis":"ONE_SENTENCE_THESIS","watchItems":[{"icon":"ICON_EMOJI","title":"LABEL","desc":"BRIEF_DESC","urgency":"NOW_OR_LATER","uc":"BACKGROUND_COLOR","ut":"TEXT_COLOR"}],"timeframe":"HUMAN_READABLE_TIMEFRAME","positionSize":"HUMAN_READABLE_POSITION_SIZE"}`;
 
@@ -3943,6 +3977,8 @@ Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact stru
         renderSigOverview();
         return;
       }
+
+      try { await refreshLiveStats(); } catch (_) { }
 
       // Load assets in parallel
       const promises = SIG_ASSETS.map(async asset => {
@@ -4026,7 +4062,12 @@ Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact stru
       btn.disabled = true;
       btn.textContent = 'SCANNING...';
       try {
-        const prompt = `You are a macro strategist. March 2026: gold elevated ~$5000, oil above $100, Middle East shipping disruptions, USD weakening, AUD under pressure. Australian investor in Melbourne.
+        try { await refreshLiveStats(); } catch (_) { }
+        const prompt = `You are a macro strategist.
+
+${LIVE_MARKET_SNAPSHOT}
+
+Broader themes: Middle East / shipping and energy, USD/AUD, inflation. Australian investor in Melbourne. Use the live snapshot for current spot context; do not assume gold or oil at outdated fictional levels.
 
 Scan liquid global markets (equities, ETFs, FX, commodities, crypto) and propose a short list of the most relevant tickers for three buckets:
 - BEST TO BUY NOW: high conviction opportunities right now.
