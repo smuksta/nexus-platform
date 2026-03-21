@@ -2694,12 +2694,25 @@
   <script>
     // ═══ CONFIG ═══
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
-    // Twelve Data configuration — insert your API key below
-    const TWELVEDATA_API_KEY = 'a22b67e35a7349e386872286788aead4';
-    // Twelve Data quote endpoint (supports multiple symbols, includes close & previous_close)
-    const TWELVEDATA_QUOTE_URL = 'https://api.twelvedata.com/quote';
+    // Twelve Data: MUST be proxied by the worker (see worker-twelve-quote.example.js). Never put API keys in the browser.
+    const TWELVEDATA_QUOTE_PROXY = `${NEXUS_WORKER_URL}/twelve-quote`;
 
     // ═══ MODEL JSON PARSING (SIMPLIFIED) ═══
+    function escHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    /** Only allow #RGB / #RRGGBB / #RRGGBBAA for inline styles (model output). */
+    function safeLevelColor(c) {
+      const t = String(c ?? '').trim();
+      return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(t) ? t : 'var(--text)';
+    }
+
     function parseModelJsonOrThrow(text) {
       let s = String(text ?? '').replace(/^\uFEFF/, '');
       s = s.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
@@ -2728,7 +2741,7 @@
     async function refreshLiveStats() {
       try {
         const symbols = ['XAU/USD', 'CL1', 'AUD/USD'];
-        const url = `${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbols.join(','))}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
+        const url = `${TWELVEDATA_QUOTE_PROXY}?symbol=${encodeURIComponent(symbols.join(','))}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('QUOTE HTTP ' + res.status);
         const data = await res.json();
@@ -3859,8 +3872,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           const dx = t.clientX - touchStartX;
           const dy = t.clientY - touchStartY;
           if (dx * dx + dy * dy > TAP_DRAG_THRESHOLD_PX * TAP_DRAG_THRESHOLD_PX) {
-          touchMoved = true;
-        }
+            touchMoved = true;
+          }
         }
         tvx += (t.clientX - lmx) / sc;
         tvy += (t.clientY - lmy) / sc;
@@ -4116,23 +4129,27 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
     function renderIntel(d) {
       document.getElementById('intelLoading').style.display = 'none';
-      const sentCol = { 'BULLISH': '#00D4AA', 'BEARISH': '#E8394A', 'VOLATILE': '#C9A84C', 'NEUTRAL': '#3A7FD5' }[d.sentiment] || '#C9A84C';
+      const sentRaw = String(d.sentiment || '').toUpperCase().trim();
+      const sentKey = ['BULLISH', 'BEARISH', 'VOLATILE', 'NEUTRAL'].includes(sentRaw) ? sentRaw : 'NEUTRAL';
+      const sentCol = { BULLISH: '#00D4AA', BEARISH: '#E8394A', VOLATILE: '#C9A84C', NEUTRAL: '#3A7FD5' }[sentKey];
+      const crumb = document.getElementById('breadcrumbNode').textContent || '';
+      const crumbShow = Boolean(crumb);
 
       const html = `
     <!-- Bridge banner if from map -->
-    <div class="bridge-banner ${document.getElementById('breadcrumbNode').textContent ? 'show' : ''}" style="display:${document.getElementById('breadcrumbNode').textContent ? 'flex' : 'none'}">
-      ⬡ Deep dive from MAP node: ${document.getElementById('breadcrumbNode').textContent} — full INTEL analysis below
+    <div class="bridge-banner ${crumbShow ? 'show' : ''}" style="display:${crumbShow ? 'flex' : 'none'}">
+      ⬡ Deep dive from MAP node: ${escHtml(crumb)} — full INTEL analysis below
     </div>
 
     <!-- Summary + Sentiment -->
     <div class="icard full fade-up">
       <div class="icard-head">
-        <span class="icard-title">CORE ANALYSIS — ${d.asset || 'ASSET'}</span>
-        <span class="icard-badge" style="background:${sentCol}20;color:${sentCol}">${d.sentiment || 'ANALYSING'}</span>
+        <span class="icard-title">CORE ANALYSIS — ${escHtml(d.asset || 'ASSET')}</span>
+        <span class="icard-badge" style="background:${sentCol}20;color:${sentCol}">${escHtml(sentKey)}</span>
       </div>
       <div class="icard-body">
-        ${d.summary ? `<p class="analysis-para" style="font-size:14px;font-weight:500">${d.summary}</p>` : ''}
-        ${(d.analysis || []).map(p => `<p class="analysis-para">${p}</p>`).join('')}
+        ${d.summary ? `<p class="analysis-para" style="font-size:14px;font-weight:500">${escHtml(d.summary)}</p>` : ''}
+        ${(d.analysis || []).map(p => `<p class="analysis-para">${escHtml(p)}</p>`).join('')}
       </div>
     </div>
 
@@ -4142,9 +4159,9 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       <div class="icard-body"><div class="levels-grid">
         ${(d.keyLevels || []).map(l => `
           <div class="level-box">
-            <div class="level-lbl">${l.lbl}</div>
-            <div class="level-val" style="color:${l.color || 'var(--text)'}">${l.val}</div>
-            <div class="level-note">${l.note}</div>
+            <div class="level-lbl">${escHtml(l.lbl)}</div>
+            <div class="level-val" style="color:${safeLevelColor(l.color)}">${escHtml(l.val)}</div>
+            <div class="level-note">${escHtml(l.note)}</div>
           </div>
         `).join('')}
       </div></div>
@@ -4154,15 +4171,18 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     <div class="icard fade-up">
       <div class="icard-head"><span class="icard-title">KEY RISKS</span><span class="icard-badge badge-gold">WATCH</span></div>
       <div class="icard-body">
-        ${(d.risks || []).map(r => `
+        ${(d.risks || []).map(r => {
+          const imp = String(r.impact || '').toUpperCase();
+          const impactColor = imp === 'HIGH' ? '#E8394A' : imp === 'MED' ? '#C9A84C' : '#00D4AA';
+          return `
           <div class="ripple-row">
             <div class="ripple-content">
-              <div class="ripple-title">${r.title}</div>
-              <div class="ripple-desc">${r.desc}</div>
+              <div class="ripple-title">${escHtml(r.title)}</div>
+              <div class="ripple-desc">${escHtml(r.desc)}</div>
             </div>
-            <span class="ripple-badge" style="background:rgba(232,57,74,0.08);color:${r.impact === 'HIGH' ? '#E8394A' : r.impact === 'MED' ? '#C9A84C' : '#00D4AA'}">${r.impact || ''}</span>
-          </div>
-        `).join('')}
+            <span class="ripple-badge" style="background:rgba(232,57,74,0.08);color:${impactColor}">${escHtml(r.impact || '')}</span>
+          </div>`;
+        }).join('')}
       </div>
     </div>
 
@@ -4173,15 +4193,15 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         <div class="levels-grid">
           <div class="level-box">
             <div class="level-lbl">NOW</div>
-            <div class="level-note">${(d.action && d.action.now) || '—'}</div>
+            <div class="level-note">${escHtml((d.action && d.action.now) || '—')}</div>
           </div>
           <div class="level-box">
             <div class="level-lbl">SOON</div>
-            <div class="level-note">${(d.action && d.action.soon) || '—'}</div>
+            <div class="level-note">${escHtml((d.action && d.action.soon) || '—')}</div>
           </div>
           <div class="level-box">
             <div class="level-lbl">LATER</div>
-            <div class="level-note">${(d.action && d.action.later) || '—'}</div>
+            <div class="level-note">${escHtml((d.action && d.action.later) || '—')}</div>
           </div>
         </div>
       </div>
@@ -4231,7 +4251,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       const symbol = SIG_SYMBOL_MAP[asset];
       if (symbol) {
         try {
-          const priceRes = await fetch(`${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`);
+          const priceRes = await fetch(`${TWELVEDATA_QUOTE_PROXY}?symbol=${encodeURIComponent(symbol)}`);
           if (priceRes.ok) {
             const data = await priceRes.json();
             const close = data.close ?? data.price;
