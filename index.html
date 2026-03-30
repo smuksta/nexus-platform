@@ -2706,10 +2706,8 @@
   <script>
     // ═══ CONFIG ═══
     const NEXUS_WORKER_URL = 'https://soft-base-a9af.mdsimonetti.workers.dev';
-    // Twelve Data — direct quote API (header + signal price hints). Paste your key below.
-    // Optional: proxy via worker instead (see worker-twelve-quote.example.js + README) to avoid exposing the key.
-    const TWELVEDATA_API_KEY = 'a22b67e35a7349e386872286788aead4';
-    const TWELVEDATA_QUOTE_URL = 'https://api.twelvedata.com/quote';
+    // Twelve Data quotes are proxied through the worker — API key lives in worker env, not here.
+    // Worker must handle GET /twelve-quote?symbol=... (see worker-twelve-quote.example.js)
 
     // ═══ MODEL JSON PARSING (SIMPLIFIED) ═══
     function escHtml(s) {
@@ -2725,6 +2723,13 @@
     function safeLevelColor(c) {
       const t = String(c ?? '').trim();
       return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(t) ? t : 'var(--text)';
+    }
+
+    /** fetch() with a 30-second timeout. Signature matches fetch(). */
+    async function fetchWithTimeout(url, opts = {}, ms = 30000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
     }
 
     function parseModelJsonOrThrow(text) {
@@ -2755,8 +2760,8 @@
     async function refreshLiveStats() {
       try {
         const symbols = ['XAU/USD', 'CL1', 'AUD/USD'];
-        const url = `${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbols.join(','))}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`;
-        const res = await fetch(url);
+        const url = `${NEXUS_WORKER_URL}/twelve-quote?symbol=${encodeURIComponent(symbols.join(','))}`;
+        const res = await fetchWithTimeout(url);
         if (!res.ok) throw new Error('QUOTE HTTP ' + res.status);
         const data = await res.json();
         console.log('TwelveData batch quote response:', data);
@@ -2909,11 +2914,11 @@ Respond ONLY with strict JSON, no markdown, no commentary:
   ]
 }`;
 
-        const res = await fetch(NEXUS_WORKER_URL, {
+        const res = await fetchWithTimeout(NEXUS_WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-sonnet-4-6',
             max_tokens: 6000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
             messages: [{ role: 'user', content: prompt }],
@@ -3298,7 +3303,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
     async function loadDynamicNodesFromServer() {
       try {
-        const res = await fetch(NEXUS_WORKER_URL.replace(/\/$/, '') + '/map');
+        const res = await fetchWithTimeout(NEXUS_WORKER_URL.replace(/\/$/, '') + '/map');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         const dyn = Array.isArray(data.dynamicNodes) ? data.dynamicNodes : [];
@@ -3970,10 +3975,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
       try {
         try { await refreshLiveStats(); } catch (_) { }
-        const res = await fetch(NEXUS_WORKER_URL, {
+        const res = await fetchWithTimeout(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514", max_tokens: 2000,
+            model: "claude-sonnet-4-6", max_tokens: 2000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
             messages: [{
               role: "user", content: `You are a macro market analyst. Analyse the topic: "${node.label.replace('\n', ' ')}" using the live market snapshot and thematic backdrop below.
@@ -4038,11 +4043,14 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       let connHtml = '<div style="margin-top:14px"><div class="sp-block-label" style="color:var(--muted2);margin-bottom:8px">CONNECTED NODES</div><div class="conn-chips">';
       node.connections.forEach(cid => {
         const cn = nodes.find(x => x.id === cid); if (!cn) return;
-        connHtml += `<div class="conn-chip" onclick="openPanel(nodes.find(x=>x.id==='${cid}'))"><div class="conn-chip-dot" style="background:${typeColors[cn.type]}"></div>${cn.label.replace('\n', ' ')}</div>`;
+        connHtml += `<div class="conn-chip" data-cid="${escHtml(cid)}"><div class="conn-chip-dot" style="background:${typeColors[cn.type]}"></div>${escHtml(cn.label.replace('\n', ' '))}</div>`;
       });
       connHtml += '</div></div>';
 
-      document.getElementById('spContent').innerHTML = tabs[spActiveTab] + (spActiveTab === 'act' ? connHtml : connHtml);
+      document.getElementById('spContent').innerHTML = tabs[spActiveTab] + connHtml;
+      document.getElementById('spContent').querySelectorAll('.conn-chip[data-cid]').forEach(el => {
+        el.addEventListener('click', () => openPanel(nodes.find(x => x.id === el.dataset.cid)));
+      });
     }
 
     function spTab(tab, doRender = true) {
@@ -4112,10 +4120,10 @@ Respond ONLY with valid JSON (no markdown, no backticks):
 
       try {
         try { await refreshLiveStats(); } catch (_) { }
-        const res = await fetch(NEXUS_WORKER_URL, {
+        const res = await fetchWithTimeout(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-sonnet-4-6",
             max_tokens: 3000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.\n\n" + sys,
             messages: [{ role: "user", content: "QUERY: " + q }]
@@ -4265,7 +4273,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       const symbol = SIG_SYMBOL_MAP[asset];
       if (symbol) {
         try {
-          const priceRes = await fetch(`${TWELVEDATA_QUOTE_URL}?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(TWELVEDATA_API_KEY)}`);
+          const priceRes = await fetchWithTimeout(`${NEXUS_WORKER_URL}/twelve-quote?symbol=${encodeURIComponent(symbol)}`);
           if (priceRes.ok) {
             const data = await priceRes.json();
             const close = data.close ?? data.price;
@@ -4281,10 +4289,10 @@ Broader themes: energy/geopolitics, USD/AUD, inflation and policy. The reader is
 Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact structure (no markdown, no extra commentary):
 {"asset":"ASSET_SYMBOL","confluenceScore":NUMBER_0_100,"signal":"ONE_OF_STRONG_BUY_BUY_WATCH_AVOID_SHORT","entryZone":{"low":"PRICE_RANGE_LOW","high":"PRICE_RANGE_HIGH","note":"SHORT_NOTE"},"target1":{"price":"TARGET1_PRICE","pct":"TARGET1_PCT_MOVE","note":"TARGET1_NOTE"},"target2":{"price":"TARGET2_PRICE","pct":"TARGET2_PCT_MOVE","note":"TARGET2_NOTE"},"stopLoss":{"price":"STOP_PRICE","pct":"STOP_PCT_MOVE","note":"STOP_NOTE"},"factors":[{"name":"FACTOR_NAME","score":NUMBER_0_100,"color":"HEX_COLOR"}],"confluence":[{"factor":"FACTOR_LABEL","aligned":true,"note":"BRIEF_REASON"}],"thesis":"ONE_SENTENCE_THESIS","watchItems":[{"icon":"ICON_EMOJI","title":"LABEL","desc":"BRIEF_DESC","urgency":"NOW_OR_LATER","uc":"BACKGROUND_COLOR","ut":"TEXT_COLOR"}],"timeframe":"HUMAN_READABLE_TIMEFRAME","positionSize":"HUMAN_READABLE_POSITION_SIZE"}`;
 
-      const res = await fetch(NEXUS_WORKER_URL, {
+      const res = await fetchWithTimeout(NEXUS_WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-6",
           max_tokens: 3000,
           system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
           messages: [{ role: "user", content: prompt }]
@@ -4433,10 +4441,10 @@ Respond ONLY with strict JSON, no markdown, no commentary:
   ]
 }`;
 
-        const res = await fetch(NEXUS_WORKER_URL, {
+        const res = await fetchWithTimeout(NEXUS_WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-sonnet-4-6",
             max_tokens: 3000,
             system: "You are a JSON API. You must respond with ONLY raw JSON. Never use markdown, never use backticks, never add any text before or after the JSON object. Your entire response must be parseable by JSON.parse() with no preprocessing.",
             messages: [{ role: "user", content: prompt }]
@@ -4452,7 +4460,8 @@ Respond ONLY with strict JSON, no markdown, no commentary:
 
         const tickerEl = document.getElementById('sigTicker');
         candidates.forEach(c => {
-          const asset = String(c.asset || '').toUpperCase().trim();
+          // Sanitise: only allow characters valid in asset symbols (e.g. BTC, XAU/USD, ETH-USDT)
+          const asset = String(c.asset || '').toUpperCase().trim().replace(/[^A-Z0-9\-\.\/]/g, '').slice(0, 20);
           if (!asset) return;
           const bucketStr = String(c.bucket || '').toLowerCase();
           const flags = {
@@ -4465,12 +4474,15 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           if (!SIG_ASSETS.includes(asset)) {
             SIG_ASSETS.push(asset);
             if (tickerEl) {
-              tickerEl.insertAdjacentHTML('beforeend', `
-        <div class="sig-asset-tab" id="sigtab-${asset}" onclick="selectSigAsset('${asset}')">
-          <div class="sig-asset-name">${asset}</div>
-          <div class="sig-asset-score" id="sigscore-${asset}" style="color:var(--muted2)">—</div>
-          <div class="sig-asset-signal" id="sigsig-${asset}" style="background:rgba(90,122,148,0.1);color:var(--muted2)">LOADING</div>
-        </div>`);
+              const tab = document.createElement('div');
+              tab.className = 'sig-asset-tab';
+              tab.id = 'sigtab-' + asset;
+              tab.addEventListener('click', () => selectSigAsset(asset));
+              tab.innerHTML = `
+        <div class="sig-asset-name">${escHtml(asset)}</div>
+        <div class="sig-asset-score" id="sigscore-${escHtml(asset)}" style="color:var(--muted2)">—</div>
+        <div class="sig-asset-signal" id="sigsig-${escHtml(asset)}" style="background:rgba(90,122,148,0.1);color:var(--muted2)">LOADING</div>`;
+              tickerEl.appendChild(tab);
             }
           }
         });
