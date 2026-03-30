@@ -2925,7 +2925,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
           }),
         });
         const d = await res.json();
-        if (!Array.isArray(d.content)) throw new Error(d.error || 'No content field in risk scan response');
+        if (!Array.isArray(d.content)) throw new Error(d.error?.message || JSON.stringify(d.error) || 'No content field in risk scan response');
         const raw = d.content.map(i => i.text || '').join('');
         const parsed = parseModelJsonOrThrow(raw);
         if (!parsed || (typeof parsed !== 'object')) {
@@ -4005,7 +4005,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         });
         const d = await res.json();
         if (!Array.isArray(d.content)) {
-          throw new Error(d.error || 'No content field in model response');
+          throw new Error(d.error?.message || JSON.stringify(d.error) || 'No content field in model response');
         }
         const raw = d.content
           .map(i => i.text || '')
@@ -4131,7 +4131,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         });
         const d = await res.json();
         if (!Array.isArray(d.content)) {
-          throw new Error(d.error || 'No content field in model response');
+          throw new Error(d.error?.message || JSON.stringify(d.error) || 'No content field in model response');
         }
         const raw = d.content.map(i => i.text || '').join('');
         const parsed = parseModelJsonOrThrow(raw);
@@ -4300,7 +4300,7 @@ Analyse the asset: ${asset}. Reply ONLY with valid JSON matching this exact stru
       });
       const d = await res.json();
       if (!Array.isArray(d.content)) {
-        throw new Error(d.error || 'No content field in model response');
+        throw new Error(d.error?.message || JSON.stringify(d.error) || 'No content field in model response');
       }
       const raw = d.content.map(i => i.text || '').join('');
       return parseModelJsonOrThrow(raw);
@@ -4452,7 +4452,7 @@ Respond ONLY with strict JSON, no markdown, no commentary:
         });
         const d = await res.json();
         if (!Array.isArray(d.content)) {
-          throw new Error(d.error || 'No content field in discovery response');
+          throw new Error(d.error?.message || JSON.stringify(d.error) || 'No content field in discovery response');
         }
         const raw = d.content.map(i => i.text || '').join('');
         const parsed = parseModelJsonOrThrow(raw);
